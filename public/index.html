@@ -5,123 +5,161 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/public/studio.css">
 </head>
 <body>
 
-<svg width="0" height="0" style="position:absolute"><defs>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <g id="botBody"><rect x="2" y="0" width="10" height="7" fill="#D97757"/><rect x="0" y="3" width="2" height="2" fill="#D97757"/><rect x="12" y="3" width="2" height="2" fill="#D97757"/></g>
+  <g id="botLegs" fill="#D97757"><rect x="3" y="7" width="1" height="3"/><rect x="5" y="7" width="1" height="3"/><rect x="8" y="7" width="1" height="3"/><rect x="10" y="7" width="1" height="3"/></g>
 </defs></svg>
 
-<header class="top">
-  <div class="brand">
-    <svg viewBox="0 0 14 11"><use href="#botBody"/><rect x="4" y="2" width="1" height="2" fill="#08090A"/><rect x="9" y="2" width="1" height="2" fill="#08090A"/><g fill="#D97757"><rect x="3" y="7" width="1" height="3"/><rect x="5" y="7" width="1" height="3"/><rect x="8" y="7" width="1" height="3"/><rect x="10" y="7" width="1" height="3"/></g></svg>
-    Studio
-  </div>
-  <span class="sep"></span>
-  <div class="proj">
-    <button class="proj-btn" id="projBtn"><span class="sw" id="projSw">M</span><span id="projName">Move</span>
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 4 5 6.5 7.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".6"/></svg>
-    </button>
-    <div class="menu" id="menu"></div>
-  </div>
-  <div class="grow"></div>
-  <button class="btn btn-main" id="uploadTop"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Nouvelle vidéo</span></button>
-  <input type="file" id="file" accept="video/*" hidden>
-</header>
-
-<main>
-  <div class="job">
-    <div><h1 id="jobTitle">Aucune vidéo</h1><div class="sub" id="jobSub">Glisse une vidéo pour que Claude la monte</div></div>
-    <div class="stats">
-      <div class="stat"><b id="sDur">–</b><span>Durée</span></div>
-      <div class="stat"><b id="sCuts">0</b><span>Coupes</span></div>
-      <div class="stat"><b id="sTime">–</b><span>Temps passé</span></div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 14 11" aria-hidden="true"><use href="#botBody"/><use href="#botLegs"/><rect x="4" y="2" width="1" height="2" fill="#0A0A0B"/><rect x="9" y="2" width="1" height="2" fill="#0A0A0B"/></svg>
+      Studio
     </div>
-  </div>
 
-  <div class="layout">
-    <section class="studio" id="studio">
-      <div class="viewer">
-        <div class="script" id="script"><div class="pane-t">Transcription</div><div id="lines"></div></div>
+    <div class="proj">
+      <button class="proj-btn" id="projBtn" aria-haspopup="true" aria-expanded="false">
+        <span class="sw" id="projSw">M</span><span id="projName">Move</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2.5 4 5 6.5 7.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+      <div class="menu" id="menu"></div>
+    </div>
 
-        <div class="frame-wrap">
-          <div class="frame" id="frame">
-            <div class="inner"><video id="vid" muted loop playsinline autoplay></video></div>
-            <div class="cap" id="cap"></div>
-            <span class="ftag" style="left:8px" id="fLabel">Original</span>
-            <button class="ftag sound" id="sound" style="right:8px" aria-label="Activer le son">Son coupé</button>
-            <div class="brk" id="brk"><i></i><i></i><i></i><i></i></div>
-            <div class="flash" id="flash"></div>
-            <div class="empty" id="empty">
-              <b>Glisse ta vidéo ici</b>
-              <span>Claude la monte avec l'identité de <span class="pname">Move</span></span>
-            </div>
-          </div>
-        </div>
+    <button class="btn btn-main wide" id="newBtn">
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      Nouvelle vidéo
+    </button>
+    <input type="file" id="file" accept="video/*" hidden>
 
-        <div class="outputs">
-          <div class="pane-t">Fichiers rendus</div>
-          <div id="outs"></div>
-        </div>
-      </div>
+    <div class="list-t">Vidéos</div>
+    <ul class="jobs" id="jobs"></ul>
+  </aside>
 
-      <div class="tl" id="tl">
-        <div class="tl-head"><span>0:00</span><span id="tlEnd">–</span></div>
-        <div class="row"><span>Vidéo</span><div class="track" id="vtrack"></div></div>
-        <div class="row"><span>Voix</span><div class="track wave" id="wave"></div></div>
-        <div class="row"><span>Sous-titres</span><div class="track" id="strack"></div></div>
-        <div class="row"><span>Musique</span><div class="track" id="mtrack"><div class="fill"></div></div></div>
-        <div class="render" id="render"><i></i></div>
-      </div>
-
-      <div class="robot sleeping" id="robot">
-        <div class="bubble" id="bubble"></div>
-        <div class="body">
-          <svg viewBox="0 0 14 11">
-            <use href="#botBody"/>
-            <g class="eyes" fill="#08090A"><rect x="4" y="2" width="1" height="2"/><rect x="9" y="2" width="1" height="2"/></g>
-            <g fill="#D97757"><g class="legA"><rect x="3" y="7" width="1" height="3"/><rect x="8" y="7" width="1" height="3"/></g><g class="legB"><rect x="5" y="7" width="1" height="3"/><rect x="10" y="7" width="1" height="3"/></g></g>
-          </svg>
-          <div class="tool" id="tool"></div>
-          <div class="zz">z</div>
-        </div>
-      </div>
-      <div class="dropcover" id="dropcover"><b>Lâche ta vidéo</b></div>
+  <main>
+    <!-- nothing selected -->
+    <section class="home" id="home">
+      <button class="dropzone" id="dropzone">
+        <svg class="sleeper" viewBox="-2 -5 20 16" aria-hidden="true"><use href="#botBody"/><use href="#botLegs"/><rect x="4" y="3" width="1" height=".6" fill="#0A0A0B"/><rect x="9" y="3" width="1" height=".6" fill="#0A0A0B"/><g class="zz" fill="#8B8D94"><rect x="14" y="-3" width="2" height=".6"/><rect x="15" y="-2.4" width="1" height=".6"/><rect x="14" y="-1.8" width="2" height=".6"/></g></svg>
+        <strong>Dépose une vidéo</strong>
+        <span>Glisse-la ici ou clique pour choisir un fichier.</span>
+      </button>
+      <ol class="how">
+        <li><b>Claude la monte</b>Silences, prises ratées, accroche, sous-titres, formats.</li>
+        <li><b>Tu regardes</b>Le rendu et une légende par réseau.</li>
+        <li><b>Tu valides</b>Rien ne sort sans ton accord.</li>
+      </ol>
     </section>
 
-    <aside class="side">
-      <div class="card"><ul class="steps" id="steps"></ul></div>
+    <!-- one video -->
+    <section class="work" id="work" hidden>
+      <header class="head">
+        <div class="head-l">
+          <h1 id="jobTitle"></h1>
+          <p id="jobSub"></p>
+        </div>
+        <p class="meta" id="meta"></p>
+      </header>
+      <div class="prog" aria-hidden="true"><i id="prog"></i></div>
 
-      <div class="card review" id="review">
-        <h3>Prête à partir</h3>
-        <p id="reviewNote">Regarde le rendu, relis les légendes et choisis les réseaux.</p>
-        <div id="nets"></div>
-        <div class="acts"><button class="btn btn-main" id="approve">Valider et exporter</button><button class="btn" id="fixBtn">Corriger</button></div>
-        <div class="fix" id="fix"><textarea id="fixText" placeholder="Ex. coupe l'intro plus tôt, sous-titres plus gros"></textarea><button class="btn btn-main" id="sendFix">Envoyer la correction</button></div>
+      <div class="cols">
+        <section class="stage" id="studio">
+          <div class="alert" id="alert" hidden>
+            <span id="alertText"></span>
+            <button class="btn sm" id="retry">Réessayer</button>
+          </div>
+
+          <div class="fmts" id="fmts" role="tablist" aria-label="Version affichée"></div>
+
+          <div class="viewer">
+            <div class="frame" id="frame">
+              <div class="inner"><video id="vid" muted loop playsinline autoplay></video></div>
+              <div class="cap" id="cap"></div>
+              <div class="brk" id="brk"><i></i><i></i><i></i><i></i></div>
+              <div class="flash" id="flash"></div>
+              <div class="wait" id="wait">Envoi de la vidéo…</div>
+            </div>
+          </div>
+
+          <div class="tl" id="tl">
+            <div class="tl-head"><span>0:00</span><span id="tlEnd"></span></div>
+            <div class="row"><span>Vidéo</span><div class="track" id="vtrack"></div></div>
+            <div class="row"><span>Voix</span><div class="track wave" id="wave"></div></div>
+            <div class="row"><span>Sous-titres</span><div class="track" id="strack"></div></div>
+            <div class="row" id="musicRow" hidden><span>Musique</span><div class="track" id="mtrack"><div class="fill"></div></div></div>
+            <div class="render" id="render"><i></i></div>
+          </div>
+
+          <div class="robot" id="robot" aria-hidden="true">
+            <div class="bubble" id="bubble"></div>
+            <div class="body">
+              <svg viewBox="0 0 14 11">
+                <use href="#botBody"/>
+                <g class="eyes" fill="#0A0A0B"><rect x="4" y="2" width="1" height="2"/><rect x="9" y="2" width="1" height="2"/></g>
+                <g fill="#D97757"><g class="legA"><rect x="3" y="7" width="1" height="3"/><rect x="8" y="7" width="1" height="3"/></g><g class="legB"><rect x="5" y="7" width="1" height="3"/><rect x="10" y="7" width="1" height="3"/></g></g>
+              </svg>
+              <div class="tool" id="tool"></div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel">
+          <div class="tabs" id="tabs" role="tablist">
+            <button data-tab="review" role="tab" hidden>Validation</button>
+            <button data-tab="activity" role="tab" class="on">Activité</button>
+            <button data-tab="script" role="tab">Transcription</button>
+          </div>
+
+          <div class="tab" id="tab-review" hidden>
+            <h2 id="reviewTitle">Prête. Tu valides ?</h2>
+            <p class="note" id="reviewNote"></p>
+            <ul class="facts" id="facts"></ul>
+
+            <div class="acts" id="doneActs" hidden>
+              <button class="btn btn-main" id="reveal">Ouvrir le dossier</button>
+              <button class="btn" id="another">Nouvelle vidéo</button>
+            </div>
+
+            <h3>Légendes</h3>
+            <div id="nets"></div>
+
+            <div class="acts" id="acts">
+              <button class="btn btn-main" id="approve">Valider et exporter</button>
+              <button class="btn" id="fixBtn">Demander une correction</button>
+            </div>
+            <div class="fix" id="fix" hidden>
+              <label for="fixText">Qu'est-ce que Claude doit changer ?</label>
+              <textarea id="fixText" placeholder="Ex. coupe l'intro plus tôt, sous-titres plus gros"></textarea>
+              <div class="fix-acts"><button class="btn btn-main" id="sendFix">Envoyer</button><button class="btn ghost" id="cancelFix">Annuler</button></div>
+            </div>
+            <p class="hint" id="reviewHint">L'export copie les vidéos et les légendes dans un dossier, prêtes à poster. La publication automatique n'est pas encore branchée.</p>
+
+          </div>
+
+          <div class="tab" id="tab-activity">
+            <ul class="steps" id="steps"></ul>
+            <details class="journal">
+              <summary>Journal détaillé</summary>
+              <ul class="log" id="log"></ul>
+            </details>
+          </div>
+
+          <div class="tab" id="tab-script" hidden>
+            <p class="empty-t" id="scriptEmpty">La transcription apparaît ici dès que Claude a écouté la vidéo.</p>
+            <div class="lines" id="lines"></div>
+          </div>
+        </aside>
       </div>
+    </section>
+  </main>
+</div>
 
-      <div class="card done-card" id="doneCard">
-        <h3>Exportée</h3>
-        <p id="doneText">Les vidéos et les légendes sont dans ton dossier d'export.</p>
-        <button class="btn" id="reveal">Ouvrir le dossier</button>
-      </div>
-
-      <div class="card">
-        <div class="log-t">Journal</div>
-        <ul class="log" id="log"><li class="muted">Rien pour l'instant.</li></ul>
-      </div>
-
-      <div class="card jobs">
-        <div class="log-t">Vidéos de <span class="pname">Move</span></div>
-        <ul id="jobs"></ul>
-      </div>
-    </aside>
-  </div>
-</main>
-
-<div class="toast" id="toast"></div>
+<div class="dropcover" id="dropcover"><b>Lâche ta vidéo</b></div>
+<div class="toast" id="toast" role="status"></div>
 <script src="/public/studio.js"></script>
 </body>
 </html>

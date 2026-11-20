@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["server.mjs"],
       "port": 4620
+    },
+    {
+      "name": "studio-check",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PORT=4621", "node", "server.mjs"],
+      "port": 4621
     }
   ]
 }

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { ROOT, JOBS_DIR, BIN, WHISPER_MODEL, loadProjects } from "./lib/config.mjs";
-import { loadAll, createJob, getJob, listJobs, enqueue, subscribe, update, dirOf } from "./lib/jobs.mjs";
+import { loadAll, createJob, getJob, listJobs, enqueue, subscribe, resetEvents, dirOf } from "./lib/jobs.mjs";
 import { processJob, fixJob, exportJob } from "./lib/pipeline.mjs";
 
 const PORT = +(process.env.PORT || 4620);
@@ -127,9 +127,9 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && job && parts[3] === "approve") {
       if (job.status !== "review") return send(res, 409, { error: "Cette vidéo n'attend pas de validation." });
-      const { networks = [] } = await readJSON(req);
+      const { networks = [], captions = null } = await readJSON(req);
       if (!networks.length) return send(res, 400, { error: "Choisis au moins un réseau." });
-      enqueue(job, (j) => exportJob(j, networks));
+      enqueue(job, (j) => exportJob(j, networks, captions));
       return send(res, 200, { ok: true });
     }
     if (req.method === "POST" && job && parts[3] === "fix") {
@@ -137,6 +137,12 @@ const server = http.createServer(async (req, res) => {
       const { text = "" } = await readJSON(req);
       if (!text.trim()) return send(res, 400, { error: "Dis-moi quoi corriger." });
       enqueue(job, (j) => fixJob(j, text.trim().slice(0, 1000)));
+      return send(res, 200, { ok: true });
+    }
+    if (req.method === "POST" && job && parts[3] === "retry") {
+      if (!["failed", "review"].includes(job.status)) return send(res, 409, { error: "Cette vidéo est déjà en cours de montage." });
+      resetEvents(job);
+      enqueue(job, processJob);
       return send(res, 200, { ok: true });
     }
     if (req.method === "POST" && job && parts[3] === "reveal") {

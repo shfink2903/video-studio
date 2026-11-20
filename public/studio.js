@@ -1,9 +1,10 @@
-/* Studio: the dashboard follows the real job events and the robot acts them out. */
+/* Studio: the screen follows the real job events and the robot acts them out. */
 const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
 const studio = $("#studio"), robot = $("#robot"), bubble = $("#bubble"), tool = $("#tool");
 
 const STEPS = [
-  ["transcribe", "Transcription"], ["hook", "Accroche"], ["cut", "Découpe"], ["subs", "Sous-titres"], ["zoom", "Zoom"],
+  ["transcribe", "Transcription"], ["hook", "Accroche"], ["cut", "Découpe"], ["subs", "Sous-titres"], ["zoom", "Zooms"],
   ["music", "Musique"], ["render", "Rendu"], ["captions", "Légendes"], ["review", "Ta validation"], ["publish", "Export"],
 ];
 const NET_KEYS = { TikTok: "tiktok", "Instagram Reels": "instagram", "YouTube Shorts": "youtube", LinkedIn: "linkedin" };
@@ -25,6 +26,7 @@ let st = {};
 /* ---------------------------------------------------------------- helpers */
 const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const slug = (f) => f.replace(":", "x");
 const speed = () => (queue.length > 12 ? 4 : queue.length > 5 ? 2 : 1);
 function sleep(ms) {
   const my = epoch;
@@ -37,15 +39,23 @@ function pt(target, ax = 0.5, ay = 0, dx = 0, dy = 0) {
   return { x: r.left - b.left + r.width * ax + dx, y: r.top - b.top + r.height * ay + dy };
 }
 let pos = { x: 0, y: 0 }, lastTarget = null;
+function sideBubble() {
+  const w = studio.clientWidth;
+  bubble.classList.toggle("right", pos.x > w - 170);
+  bubble.classList.toggle("left", pos.x < 170);
+}
 function place(x, y, ms) {
+  x = Math.max(30, Math.min(studio.clientWidth - 30, x));
   robot.style.transitionDuration = ms + "ms";
   robot.style.transform = `translate(${x - 26}px,${y - 41}px)`;
   pos = { x, y };
+  sideBubble();
 }
 async function go(target, ax = 0.5, ay = 0, dx = 0, dy = 0, pace = 0.9) {
-  if (!el(target)) return;
+  const t = el(target);
+  if (!t || !t.getClientRects().length) return; // hidden or missing: stay where we are
   lastTarget = [target, ax, ay, dx, dy];
-  const p = pt(target, ax, ay, dx, dy);
+  const p = pt(t, ax, ay, dx, dy);
   const dist = Math.hypot(p.x - pos.x, p.y - pos.y);
   robot.classList.remove("sleeping");
   if (fast || dist < 2) return place(p.x, p.y, 0);
@@ -59,9 +69,7 @@ async function go(target, ax = 0.5, ay = 0, dx = 0, dy = 0, pace = 0.9) {
 function say(t) {
   if (!t) return bubble.classList.remove("show");
   bubble.textContent = t;
-  const w = studio.clientWidth;
-  bubble.classList.toggle("right", pos.x > w - 140);
-  bubble.classList.toggle("left", pos.x < 140);
+  sideBubble();
   bubble.classList.add("show");
 }
 const hold = (name, mode) => {
@@ -69,19 +77,19 @@ const hold = (name, mode) => {
   tool.className = "tool" + (name ? " show" : "") + (mode ? " " + mode : "");
 };
 const busy = (on) => robot.classList.toggle("busy", on);
+
 function log(text, detail, kind = "", at) {
   const ul = $("#log");
-  ul.querySelector(".muted")?.remove();
+  ul.querySelector(".none")?.remove();
   const li = document.createElement("li");
   if (kind) li.className = kind;
   const s = st.t0 && at ? Math.max(0, Math.round((at - st.t0) / 1000)) : null;
-  li.innerHTML = `<time>${s !== null ? fmt(s) : ""}</time><span>${esc(text)}${detail ? ` <span class="k">· ${esc(detail)}</span>` : ""}</span>`;
+  li.innerHTML = `<time>${s !== null ? fmt(s) : ""}</time><span>${esc(text)}${detail ? ` <span class="k">${esc(detail)}</span>` : ""}</span>`;
   ul.appendChild(li);
-  ul.scrollTop = 1e6;
 }
 function toast(m, action) {
   const t = $("#toast");
-  t.innerHTML = esc(m);
+  t.textContent = m;
   if (action) {
     const b = document.createElement("button");
     b.textContent = action.label;
@@ -92,67 +100,153 @@ function toast(m, action) {
   clearTimeout(t._h);
   t._h = setTimeout(() => t.classList.remove("show"), action ? 6000 : 2800);
 }
+
+/* ---------------------------------------------------------------- views, tabs, header */
+function showView(name) {
+  $("#home").hidden = name !== "home";
+  $("#work").hidden = name !== "work";
+}
+function showTab(name) {
+  $$("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  for (const t of ["review", "activity", "script"]) $("#tab-" + t).hidden = t !== name;
+}
+$$("#tabs button").forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+function reviewTab(visible, label) {
+  const b = $('#tabs [data-tab="review"]');
+  b.hidden = !visible;
+  if (label) b.textContent = label;
+  if (!visible && b.classList.contains("on")) showTab("activity");
+}
+
 function setStep(id, state, note) {
-  const li = document.querySelector(`#steps li[data-s="${id}"]`);
+  const li = $(`#steps li[data-s="${id}"]`);
   if (!li) return;
-  li.className = state === "wait" ? "wait" : state;
+  li.className = state;
   if (note !== undefined) li.querySelector(".r").textContent = note || "";
+  const done = $$("#steps li.done, #steps li.skip, #steps li.error").length;
+  $("#prog").style.width = (done / STEPS.length) * 100 + "%";
+  $(".prog").classList.toggle("done", done === STEPS.length);
+  st.stepLabel = $("#steps li.active .l")?.textContent || "";
+  renderSub();
 }
-function setDur(d) {
-  st.dur = d;
-  $("#sDur").textContent = fmt(d);
-  $("#tlEnd").textContent = fmt(d);
+function renderSub() {
+  const s = st.status;
+  let t = "";
+  if (s === "uploading") t = "Envoi de la vidéo";
+  else if (s === "queued") t = "En file d'attente : Claude termine une autre vidéo";
+  else if (s === "running") t = "Claude monte ta vidéo" + (st.stepLabel ? " · " + st.stepLabel : "");
+  else if (s === "review") t = "Prête. Regarde le rendu, puis valide ou demande une correction.";
+  else if (s === "exported") t = "Exportée, prête à poster";
+  else if (s === "failed") t = "Le montage s'est arrêté";
+  $("#jobSub").textContent = t;
 }
-function setVideo(url, label) {
-  const v = $("#vid");
-  if (!url) {
-    v.removeAttribute("src");
-    v.load();
-    $("#frame").classList.remove("has-video");
-    return;
+function renderMeta() {
+  const parts = [];
+  if (st.dur) parts.push(st.srcDur && Math.abs(st.srcDur - st.dur) > 0.5 ? `${fmt(st.srcDur)} → ${fmt(st.dur)}` : fmt(st.dur));
+  if (st.cuts) parts.push(`${st.cuts} coupe${st.cuts > 1 ? "s" : ""}`);
+  $("#meta").textContent = parts.join(" · ");
+  $("#tlEnd").textContent = st.dur ? fmt(st.dur) : "";
+}
+function alertBar(text, kind) {
+  if (text !== undefined) st.alert = text ? [text, kind] : null;
+  [text, kind] = st.alert || [];
+  $("#retry").hidden = !["failed", "review"].includes(st.status);
+  $("#alert").hidden = !text;
+  $("#alert").className = "alert" + (kind === "err" ? " err" : "");
+  $("#alertText").textContent = text || "";
+}
+
+/* ---------------------------------------------------------------- video and formats */
+function addFormat(key, label, url) {
+  let b = $(`#fmts [data-f="${key}"]`);
+  if (!b) {
+    b = document.createElement("button");
+    b.dataset.f = key;
+    b.setAttribute("role", "tab");
+    b.onclick = () => selectFormat(key);
+    $("#fmts").appendChild(b);
   }
-  if (v.getAttribute("src") !== url) {
-    v.src = url;
+  b.textContent = label;
+  b.disabled = !url;
+  if (url) b.dataset.url = url;
+  return b;
+}
+function selectFormat(key) {
+  const b = $(`#fmts [data-f="${key}"]`);
+  if (!b || !b.dataset.url) return;
+  $$("#fmts button").forEach((x) => x.classList.toggle("on", x === b));
+  const v = $("#vid"), f = $("#frame");
+  f.classList.remove("r4x5", "r16x9");
+  if (key === "4x5") f.classList.add("r4x5");
+  if (key === "16x9") f.classList.add("r16x9");
+  if (v.getAttribute("src") !== b.dataset.url) {
+    v.src = b.dataset.url;
     v.play().catch(() => {});
   }
-  $("#frame").classList.add("has-video");
-  $("#fLabel").textContent = label;
+  f.classList.add("has-video");
+  const final = key !== "original";
+  v.controls = final;
+  if (!final) v.muted = true;
 }
 
 /* ---------------------------------------------------------------- reset */
 function resetStage() {
   epoch++;
   queue = [];
-  st = { cuts: 0, dur: 0, outputs: {}, t0: null };
-  $("#steps").innerHTML = STEPS.map(([id, label]) => `<li data-s="${id}"><i></i>${label}<span class="r"></span></li>`).join("");
-  $("#lines").innerHTML = "";
-  $("#vtrack").innerHTML = "";
-  $("#wave").innerHTML = "";
-  $("#strack").innerHTML = "";
+  st = { cuts: 0, bad: 0, dur: 0, srcDur: 0, zooms: 0, hook: null, t0: null, status: undefined };
+  $("#steps").innerHTML = STEPS.map(([id, label]) => `<li data-s="${id}"><i></i><span class="l">${label}</span><span class="r"></span></li>`).join("");
+  for (const id of ["#lines", "#vtrack", "#wave", "#strack", "#cap", "#fmts", "#nets", "#facts"]) $(id).innerHTML = "";
   $("#mtrack .fill").style.width = "0";
-  $("#cap").innerHTML = "";
-  $("#outs").innerHTML = "";
-  $("#frame").classList.remove("zoom");
+  $("#musicRow").hidden = true;
+  $("#scriptEmpty").hidden = false;
+  $("#frame").className = "frame";
+  $("#wait").textContent = "Envoi de la vidéo…";
   $("#brk").classList.remove("show");
   $("#render").classList.remove("show");
-  $("#log").innerHTML = `<li class="muted">Rien pour l'instant.</li>`;
-  $("#review").classList.remove("show");
-  $("#fix").classList.remove("show");
-  $("#doneCard").classList.remove("show");
-  $("#sCuts").textContent = "0";
-  $("#sDur").textContent = "–";
-  $("#sTime").textContent = "–";
-  $("#tlEnd").textContent = "–";
-  setVideo(null);
+  $("#log").innerHTML = `<li class="none">Rien pour l'instant.</li>`;
+  $("#prog").style.width = "0";
+  $(".prog").classList.remove("done");
+  $("#fix").hidden = true;
+  $("#acts").hidden = false;
+  $("#doneActs").hidden = true;
+  $("#reviewHint").hidden = false;
+  $("#reviewTitle").textContent = "Prête. Tu valides ?";
+  $("#reviewNote").textContent = "";
+  reviewTab(false, "Validation");
+  showTab("activity");
+  alertBar("");
+  renderMeta();
+  const v = $("#vid");
+  v.controls = false;
+  v.muted = true;
+  v.removeAttribute("src");
+  v.load();
   say("");
   hold();
   busy(false);
-  robot.className = "robot sleeping";
-  requestAnimationFrame(() => {
-    const p = pt("#frame", 0.5, 1, 0, -8);
-    place(p.x, p.y, 0);
-    lastTarget = ["#frame", 0.5, 1, 0, -8];
-  });
+  robot.className = "robot";
+  const p = pt("#vtrack", 0.02, 0);
+  place(p.x, p.y, 0);
+  lastTarget = ["#vtrack", 0.02, 0, 0, 0];
+}
+
+/* ---------------------------------------------------------------- review panel */
+function renderFacts() {
+  const rows = [];
+  if (st.srcDur && st.dur) rows.push(["Durée", `${fmt(st.srcDur)} → ${fmt(st.dur)}`]);
+  const sil = st.cuts - st.bad;
+  const plural = (n, word) => `${n} ${word}${n > 1 ? "s" : ""}`;
+  const cuts = [sil ? plural(sil, "silence") : "", st.bad ? plural(st.bad, "passage") : ""].filter(Boolean);
+  rows.push(["Coupé", cuts.join(", ") || "rien"]);
+  if (st.hook !== null) rows.push(["Accroche", st.hook ? "déplacée au début" : "début gardé"]);
+  rows.push(["Zooms", st.zooms ? String(st.zooms) : "aucun"]);
+  rows.push(["Formats", $$("#fmts button").filter((b) => b.dataset.f !== "original").map((b) => b.dataset.f.replace("x", ":")).join(", ") || "–"]);
+  $("#facts").innerHTML = rows.map(([a, b]) => `<li><span>${a}</span><span>${esc(b)}</span></li>`).join("");
+}
+function collectCaptions() {
+  const out = {};
+  $$("#nets textarea").forEach((t) => (out[NET_KEYS[t.dataset.cap]] = t.value.trim()));
+  return Object.keys(out).length ? out : null;
 }
 
 /* ---------------------------------------------------------------- event handlers */
@@ -160,25 +254,39 @@ const H = {
   async hello(e) {
     const j = e.job;
     $("#jobTitle").textContent = j.title || j.name;
-    $("#jobSub").textContent = STATUS[j.status] ? subFor(j.status) : "";
+    st.title = j.title || "";
     st.t0 = Date.parse(j.createdAt);
     st.status = j.status;
+    renderSub();
+    if (j.status === "failed") alertBar((j.error || "Le montage a échoué.").split("\n")[0], "err");
   },
   async live() {
     fast = false;
   },
   async status(e) {
     st.status = e.status;
-    $("#jobSub").textContent = subFor(e.status, e.error);
+    renderSub();
+    alertBar();
+    if (e.status === "failed") alertBar((e.error || "Le montage a échoué.").split("\n")[0], "err");
     refreshJobs();
   },
   async job(e) {
-    setDur(e.duration);
-    setVideo(e.preview, "Original");
-    $("#jobTitle").textContent = e.name;
+    st.srcDur = e.duration;
+    st.dur = e.duration;
+    renderMeta();
+    if (!st.title) $("#jobTitle").textContent = e.name;
+    addFormat("original", "Original", e.preview);
+    selectFormat("original");
   },
   async step(e) {
     setStep(e.step, e.state, e.note);
+    if (e.step === "hook") {
+      // Claude is reading the transcript: this is the longest quiet moment, so show it
+      const thinking = e.state === "active";
+      if (thinking) await go("#wave", 0.5, 0.5, 0, 6);
+      hold(thinking ? "loupe" : null);
+      busy(thinking);
+    }
   },
   async say(e) {
     say(e.text);
@@ -189,6 +297,7 @@ const H = {
   },
   async warn(e) {
     log(e.text, "", "warn", e.at);
+    alertBar("Montage de base seulement : silences coupés, sans accroche ni légendes. " + e.text);
     robot.classList.add("sad");
     say("Je n'arrive pas à joindre Claude");
     await sleep(1800);
@@ -196,12 +305,13 @@ const H = {
   },
   async error(e) {
     log(e.text, "", "err", e.at);
-    const active = document.querySelector("#steps li.active");
+    const active = $("#steps li.active");
     if (active) setStep(active.dataset.s, "error", "erreur");
     hold();
     busy(false);
+    $("#render").classList.remove("show");
     robot.classList.add("sad");
-    say("Oups, ça a planté");
+    say("Ça a planté");
   },
   async wave(e) {
     $("#wave").innerHTML = e.peaks.map((p) => `<i style="height:${Math.max(8, p * 92)}%"></i>`).join("");
@@ -211,7 +321,7 @@ const H = {
   },
   async progress(e) {
     if (e.step === "transcribe") {
-      const bars = [...document.querySelectorAll("#wave i")];
+      const bars = $$("#wave i");
       const n = Math.round((bars.length * e.p) / 100);
       bars.forEach((b, i) => b.classList.toggle("lit", i < n));
       if (bars.length) await go(bars[Math.max(0, n - 1)], 0.5, 0.5, 0, 6, 1.6);
@@ -219,61 +329,56 @@ const H = {
         hold();
         busy(false);
       }
-    } else if (e.step === "cut") {
-      if (document.querySelector("#vtrack .seg")) await go("#vtrack", Math.min(0.98, e.p / 100), 0, 0, 0, 2);
+    } else if (e.step === "cut" && $("#vtrack .seg")) {
+      await go("#vtrack", Math.min(0.98, e.p / 100), 0, 0, 0, 2);
     }
   },
   async script(e) {
+    $("#scriptEmpty").hidden = true;
     $("#lines").innerHTML = e.lines.map((l) => `<p><span class="tc">${fmt(l.t)}</span>${esc(l.text)}</p>`).join("");
-    for (const p of document.querySelectorAll("#lines p")) {
-      p.classList.add("show");
-      await sleep(90);
-    }
-    document.querySelectorAll("#wave i").forEach((b) => b.classList.add("lit"));
+    $$("#wave i").forEach((b) => b.classList.add("lit"));
   },
   async segments(e) {
-    st.segDur = e.duration;
     if (e.isFix) {
-      $("#strack").innerHTML = "";
-      $("#cap").innerHTML = "";
-      $("#outs").innerHTML = "";
+      for (const id of ["#strack", "#cap"]) $(id).innerHTML = "";
+      $$("#fmts button").forEach((b) => b.dataset.f !== "original" && b.remove());
+      selectFormat("original");
       $("#mtrack .fill").style.width = "0";
-      $("#frame").classList.remove("zoom");
-      $("#review").classList.remove("show");
       st.cuts = 0;
-      $("#sCuts").textContent = "0";
-      setDur(e.duration);
+      st.bad = 0;
+      st.zooms = 0;
+      st.hook = null;
     }
+    st.dur = e.duration;
+    renderMeta();
     $("#vtrack").innerHTML = e.segs
-      .map((s) => `<div class="seg ${s.kind === "hook" ? "keep" : s.kind}" id="seg-${s.id}" data-k="${s.kind}" style="flex-grow:${(s.end - s.start).toFixed(3)}" title="${esc(s.reason || "")}"></div>`)
+      .map((s) => `<div class="seg ${s.kind === "hook" ? "keep" : s.kind}" id="seg-${s.id}" style="flex-grow:${(s.end - s.start).toFixed(3)}" title="${esc(s.reason || "")}"></div>`)
       .join("");
+    $$("#lines p").forEach((p) => p.classList.remove("hook"));
+    if (st.hook === null) st.hook = false;
   },
   async hook(e) {
-    const line = document.querySelectorAll("#lines p")[e.line];
-    if (line) {
-      await go(line, 0.85, 0, 0, 2);
-      hold("loupe");
-      say("Celle-là accroche");
-      line.classList.add("hook");
-      await sleep(1300);
-    }
+    st.hook = true;
+    $$("#lines p")[e.line]?.classList.add("hook");
     const segs = e.segIds.map((id) => $("#seg-" + id)).filter(Boolean);
-    if (segs.length) {
-      segs.forEach((s) => s.classList.add("hook", "lift"));
-      segs[0].textContent = "Accroche";
-      await go(segs[0], 0.5, 0);
-      say("Je la mets au début");
-      await sleep(600);
-      await go("#vtrack", 0.03, 0, 0, 0, 0.7);
-      segs.reverse().forEach((s) => $("#vtrack").prepend(s));
-      segs.forEach((s) => s.classList.remove("lift"));
-      const f = $("#flash");
-      f.classList.remove("go");
-      void f.offsetWidth;
-      f.classList.add("go");
-    }
+    if (!segs.length) return;
+    await go(segs[0], 0.5, 0);
+    hold("loupe");
+    say("Cette phrase accroche mieux");
+    segs.forEach((s) => s.classList.add("hook"));
+    segs[0].textContent = "Accroche";
+    await sleep(1400);
+    say("Je la mets au début");
+    segs.forEach((s) => s.classList.add("lift"));
+    await sleep(500);
+    await go("#vtrack", 0.03, 0, 0, 0, 0.7);
+    [...segs].reverse().forEach((s) => $("#vtrack").prepend(s));
+    segs.forEach((s) => s.classList.remove("lift"));
+    const f = $("#flash");
+    f.classList.remove("go");
+    void f.offsetWidth;
+    f.classList.add("go");
     hold();
-    log("Accroche placée en ouverture", e.reason, "", e.at);
     await sleep(400);
   },
   async cut(e) {
@@ -284,34 +389,27 @@ const H = {
     hold("scissors", "snip");
     busy(true);
     say(e.kind === "bad" ? e.reason || "Prise ratée, je retire" : "Silence, je coupe");
-    await sleep(e.kind === "bad" ? 1100 : 550);
+    await sleep(e.kind === "bad" ? 1200 : 520);
     s.classList.add("cut");
     st.cuts++;
-    $("#sCuts").textContent = st.cuts;
-    setDur(e.duration);
+    if (e.kind === "bad") st.bad++;
+    st.dur = e.duration;
+    renderMeta();
     if (e.kind === "bad") log("Passage retiré", e.reason, "", e.at);
     busy(false);
     hold();
-    await sleep(200);
+    await sleep(180);
   },
   async subs(e) {
     await go("#cap", 0.5, 0, 0, -8);
     hold("pen");
     busy(true);
     say("J'écris les sous-titres");
-    const total = e.duration || 1;
-    $("#strack").innerHTML = "";
-    const shown = e.groups.slice(0, 6);
-    for (const g of e.groups) {
-      const c = document.createElement("div");
-      c.className = "chip" + (g.hl.some(Boolean) ? " hl" : "");
-      c.style.flexGrow = Math.max(0.1, g.end - g.start).toFixed(2);
-      c.title = g.text;
-      $("#strack").appendChild(c);
-    }
-    for (const g of shown) {
-      const words = g.text.split(" ");
-      $("#cap").innerHTML = words.map((w, i) => `<span class="${g.hl[i] ? "hot" : ""}">${esc(w)}</span>`).join("");
+    $("#strack").innerHTML = e.groups
+      .map((g) => `<div class="chip${g.hl.some(Boolean) ? " hl" : ""}" style="flex-grow:${Math.max(0.1, g.end - g.start).toFixed(2)}" title="${esc(g.text)}"></div>`)
+      .join("");
+    for (const g of e.groups.slice(0, 5)) {
+      $("#cap").innerHTML = g.text.split(" ").map((w, i) => `<span class="${g.hl[i] ? "hot" : ""}">${esc(w)}</span>`).join("");
       await sleep(520);
     }
     $("#cap").innerHTML = "";
@@ -319,6 +417,7 @@ const H = {
     hold();
   },
   async zoom(e) {
+    st.zooms = e.times.length;
     if (!e.times.length) return;
     await go("#frame", 0.8, 0.3);
     say(e.times.length > 1 ? `${e.times.length} zooms sur les moments forts` : "Un zoom sur le moment fort");
@@ -330,15 +429,11 @@ const H = {
     $("#brk").classList.remove("show");
   },
   async music(e) {
-    if (e.state !== "added") {
-      await go("#mtrack", 0.05, 0.5, 0, 6);
-      say("Pas de musique dans le projet, je passe");
-      await sleep(1200);
-      return;
-    }
+    if (e.state !== "added") return;
+    $("#musicRow").hidden = false;
     await go("#mtrack", 0.02, 0.5, 0, 6);
     hold("note");
-    say("Un peu de musique");
+    say("J'ajoute la musique");
     for (let p = 0; p <= 100; p += 20) {
       $("#mtrack .fill").style.width = p + "%";
       await go("#mtrack", Math.max(0.02, (p / 100) * 0.96), 0.5, 0, 6, 1.8);
@@ -346,16 +441,7 @@ const H = {
     hold();
   },
   async render(e) {
-    let out = document.getElementById("out-" + e.format.replace(":", "x"));
-    if (!out) {
-      out = document.createElement("div");
-      out.className = "out show";
-      out.id = "out-" + e.format.replace(":", "x");
-      const [w, h] = e.format === "9:16" ? [14, 24] : e.format === "4:5" ? [18, 22] : [24, 14];
-      out.innerHTML = `<div class="shape" style="width:${w}px;height:${h}px"></div><div style="flex:1"><b>${e.format}</b><span>Rendu en cours</span><div class="bar"><i></i></div></div>`;
-      $("#outs").appendChild(out);
-    }
-    out.querySelector(".bar i").style.width = e.p + "%";
+    addFormat(slug(e.format), `${e.format} · ${e.p} %`);
     $("#render").classList.add("show");
     $("#render i").style.width = e.p + "%";
     busy(true);
@@ -363,29 +449,34 @@ const H = {
     say(`Rendu ${e.format} : ${e.p} %`);
   },
   async output(e) {
-    st.outputs[e.format] = e.url;
-    const out = document.getElementById("out-" + e.format.replace(":", "x"));
-    if (out) {
-      out.classList.add("ready");
-      out.querySelector("span").textContent = "Prêt, clique pour voir";
-      out.onclick = () => setVideo(e.url, e.format);
-    }
+    addFormat(slug(e.format), e.format, e.url);
     $("#render").classList.remove("show");
+    $("#render i").style.width = "0";
     busy(false);
-    if (e.format === "9:16" || !st.outputs["9:16"]) setVideo(e.url, e.format);
+    const first = $$("#fmts button").filter((b) => b.dataset.f !== "original" && b.dataset.url).length === 1;
+    if (first || e.format === "9:16") selectFormat(slug(e.format));
   },
   async captions(e) {
-    st.networks = e.networks;
     $("#nets").innerHTML = e.networks
-      .map((n) => {
+      .map((n, k) => {
         const txt = e.captions ? e.captions[NET_KEYS[n]] || "" : "";
-        return `<label class="net"><div class="n"><span>${esc(n)}</span><input type="checkbox" data-net="${esc(n)}" ${n === "LinkedIn" ? "" : "checked"}></div>${
-          e.captions ? `<textarea rows="3" data-cap="${esc(n)}">${esc(txt)}</textarea>` : `<p style="color:var(--faint)">Pas de légende : Claude n'était pas connecté.</p>`
-        }</label>`;
+        return `<div class="net"><div class="n"><label><input type="checkbox" data-net="${esc(n)}" ${n === "LinkedIn" ? "" : "checked"}>${esc(n)}</label>${
+          e.captions ? `<button class="copy" data-copy="${k}">Copier</button>` : ""
+        }</div>${e.captions ? `<textarea data-cap="${esc(n)}" aria-label="Légende ${esc(n)}">${esc(txt)}</textarea>` : `<p class="missing">Pas de légende : Claude n'était pas joignable.</p>`}</div>`;
       })
       .join("");
+    $$("#nets .copy").forEach(
+      (b) =>
+        (b.onclick = async () => {
+          await navigator.clipboard.writeText(b.closest(".net").querySelector("textarea").value);
+          toast("Légende copiée");
+        }),
+    );
+    $$("#nets input").forEach((i) => (i.onchange = () => i.closest(".net").classList.toggle("off", !i.checked)));
+    $$("#nets input").forEach((i) => i.onchange());
+    if (st.status === "exported") $$("#nets input, #nets textarea").forEach((i) => (i.disabled = true));
     if (e.captions) {
-      await go("#outs", 0.1, 1, 0, 0);
+      await go("#fmts", 0.5, 1, 0, 26);
       hold("pen");
       say("J'écris une légende par réseau");
       await sleep(1200);
@@ -393,58 +484,61 @@ const H = {
     }
   },
   async review(e) {
+    $("#reviewNote").textContent = e.note || "";
+    renderFacts();
+    if (st.status === "review") {
+      $("#acts").hidden = false;
+      $("#doneActs").hidden = true;
+      $("#reviewHint").hidden = false;
+      $("#reviewTitle").textContent = "Prête. Tu valides ?";
+      reviewTab(true, "Validation");
+      showTab("review");
+    }
     await go("#frame", 1, 1, 34, 0);
     robot.style.setProperty("--dir", -1);
     robot.classList.add("look-up");
     say("C'est bon pour toi ?");
-    $("#reviewNote").textContent = e.note || "Regarde le rendu, relis les légendes et choisis les réseaux.";
-    if (st.status === "review" || !st.status) $("#review").classList.add("show");
   },
-  async fix(e) {
-    $("#review").classList.remove("show");
+  async fix() {
+    reviewTab(false);
+    $("#fix").hidden = true;
     robot.classList.remove("look-up");
     say("Compris, je corrige");
     await sleep(900);
   },
   async published(e) {
-    const p = document.createElement("div");
-    p.className = "plane";
-    p.style.left = pos.x + 10 + "px";
-    p.style.top = pos.y - 30 + "px";
-    p.innerHTML = `<svg viewBox="0 0 8 5" shape-rendering="crispEdges" width="16" height="10"><rect x="0" y="2" width="8" height="1" fill="#EDEDEF"/><rect x="2" y="1" width="5" height="1" fill="#EDEDEF"/><rect x="4" y="0" width="2" height="1" fill="#EDEDEF"/><rect x="2" y="3" width="4" height="1" fill="#EDEDEF"/></svg>`;
     if (!fast) {
+      const p = document.createElement("div");
+      p.className = "plane";
+      p.style.left = pos.x + 10 + "px";
+      p.style.top = pos.y - 30 + "px";
+      p.innerHTML = `<svg viewBox="0 0 8 5" shape-rendering="crispEdges" width="16" height="10"><rect x="0" y="2" width="8" height="1" fill="#EDEDEF"/><rect x="2" y="1" width="5" height="1" fill="#EDEDEF"/><rect x="4" y="0" width="2" height="1" fill="#EDEDEF"/><rect x="2" y="3" width="4" height="1" fill="#EDEDEF"/></svg>`;
       studio.appendChild(p);
       setTimeout(() => p.remove(), 1400);
     }
     say("Prêt pour " + e.network);
-    await sleep(700);
+    await sleep(600);
   },
   async exported(e) {
+    renderFacts();
+    $("#reviewTitle").textContent = "Exportée";
+    $("#reviewNote").textContent = `Les vidéos et les légendes sont dans ${e.dir.replace(/^\/Users\/[^/]+/, "~")}. Il te reste à les poster : la publication automatique n'est pas encore branchée.`;
+    $("#acts").hidden = true;
+    $("#fix").hidden = true;
+    $("#reviewHint").hidden = true;
+    $("#doneActs").hidden = false;
+    $$("#nets input, #nets textarea").forEach((i) => (i.disabled = true));
+    reviewTab(true, "Export");
+    showTab("review");
     robot.classList.remove("look-up");
+    await go("#frame", 1, 1, 34, 0);
+    robot.style.setProperty("--dir", -1);
     robot.classList.add("jump");
-    say("C'est exporté !");
-    $("#review").classList.remove("show");
-    $("#doneText").textContent = `Les vidéos et les légendes sont dans ${e.dir.replace(/^\/Users\/[^/]+/, "~")}. La publication automatique sur les réseaux n'est pas encore branchée.`;
-    $("#doneCard").classList.add("show");
-    if (!fast) toast("Exportée : vidéos et légendes prêtes", { label: "Ouvrir le dossier", fn: reveal });
+    say("C'est exporté");
     await sleep(1300);
     robot.classList.remove("jump");
   },
 };
-
-function subFor(status, error) {
-  return (
-    {
-      uploading: "Envoi de la vidéo…",
-      queued: "En file d'attente, Claude finit une autre vidéo",
-      running: "Claude monte ta vidéo pour " + (project?.name || ""),
-      review: "Prête, en attente de ta validation",
-      exported: "Exportée, prête à poster",
-      done: "Terminée",
-      failed: "Le montage a échoué" + (error ? " : " + error.split("\n")[0] : ""),
-    }[status] || ""
-  );
-}
 
 /* ---------------------------------------------------------------- event queue */
 function push(e) {
@@ -456,8 +550,7 @@ async function drain() {
   const my = epoch;
   while (queue.length && my === epoch) {
     const e = queue.shift();
-    fast = !!e.history || st.status === undefined;
-    if (e.type === "hello" || e.type === "live") fast = false;
+    fast = !!e.history;
     try {
       await (H[e.type] || (async () => {}))(e);
     } catch (err) {
@@ -466,90 +559,100 @@ async function drain() {
   }
   fast = false;
   draining = false;
-  if (my !== epoch && queue.length) drain();
+  if (queue.length) drain();
 }
 
 /* ---------------------------------------------------------------- jobs */
 function openJob(id) {
   if (es) es.close();
-  resetStage();
+  es = null;
   currentJob = id;
-  history.replaceState(null, "", id ? "#job=" + id : "#");
+  history.replaceState(null, "", id ? "#job=" + id : location.pathname);
   refreshJobs();
-  if (!id) {
-    $("#jobTitle").textContent = "Aucune vidéo";
-    $("#jobSub").textContent = "Glisse une vidéo pour que Claude la monte";
-    return;
-  }
-  st.status = undefined;
+  if (!id) return showView("home");
+  showView("work");
+  resetStage();
+  $("#wait").textContent = "Chargement…";
   es = new EventSource(`/api/jobs/${id}/events`);
   es.onmessage = (m) => push(JSON.parse(m.data));
 }
 
 async function refreshJobs() {
-  if (!project) return;
+  if (!project) return [];
   const jobs = await fetch(`/api/jobs?project=${project.id}`).then((r) => r.json()).catch(() => []);
   $("#jobs").innerHTML = jobs.length
     ? jobs
         .map(
           (j) =>
-            `<li data-id="${j.id}" class="${j.id === currentJob ? "on" : ""}"><span class="d ${j.status}"></span><span class="t">${esc(j.title || j.name)}</span><span class="s">${STATUS[j.status] || j.status}</span></li>`,
+            `<li data-id="${j.id}" tabindex="0" class="${j.id === currentJob ? "on" : ""}"><span class="d ${j.status}"></span><span class="t" title="${esc(j.title || j.name)}">${esc(j.title || j.name)}</span><span class="s">${STATUS[j.status] || j.status}</span></li>`,
         )
         .join("")
-    : `<li class="muted">Aucune vidéo pour l'instant.</li>`;
-  document.querySelectorAll("#jobs li[data-id]").forEach((li) => (li.onclick = () => openJob(li.dataset.id)));
+    : `<li class="none">Aucune vidéo pour l'instant.</li>`;
+  const mine = jobs.find((j) => j.id === currentJob);
+  if (mine?.title) $("#jobTitle").textContent = mine.title;
+  $$("#jobs li[data-id]").forEach((li) => {
+    li.onclick = () => li.dataset.id !== currentJob && openJob(li.dataset.id);
+    li.onkeydown = (e) => e.key === "Enter" && li.onclick();
+  });
   return jobs;
 }
-
-addEventListener("hashchange", () => {
-  const id = location.hash.match(/job=([\w-]+)/)?.[1];
-  if (id && id !== currentJob) openJob(id);
-});
 setInterval(refreshJobs, 5000);
-
-setInterval(() => {
-  if (st.t0 && ["running", "queued"].includes(st.status)) $("#sTime").textContent = fmt((Date.now() - st.t0) / 1000);
-}, 1000);
+addEventListener("hashchange", () => {
+  const id = location.hash.match(/job=([\w-]+)/)?.[1] || null;
+  if (id !== currentJob) openJob(id);
+});
 
 /* ---------------------------------------------------------------- upload */
 function upload(f) {
   if (!f) return;
   if (!/^video\//.test(f.type) && !/\.(mov|mp4|m4v|webm|mkv)$/i.test(f.name)) return toast("Ce fichier n'est pas une vidéo");
-  openJob(null);
+  if (es) es.close();
+  currentJob = null;
+  showView("work");
+  resetStage();
+  st.status = "uploading";
   $("#jobTitle").textContent = f.name;
-  robot.classList.remove("sleeping");
+  renderSub();
   const xhr = new XMLHttpRequest();
   xhr.open("POST", `/api/upload?project=${project.id}&name=${encodeURIComponent(f.name)}`);
   xhr.upload.onprogress = (e) => {
-    if (e.lengthComputable) {
-      const p = Math.round((e.loaded / e.total) * 100);
-      $("#jobSub").textContent = `Envoi de la vidéo : ${p} %`;
-      say(`Je reçois ta vidéo : ${p} %`);
-    }
+    if (!e.lengthComputable) return;
+    const p = Math.round((e.loaded / e.total) * 100);
+    $("#wait").textContent = `Envoi de la vidéo : ${p} %`;
+    $("#prog").style.width = p * 0.08 + "%";
   };
   xhr.onload = () => {
-    const r = JSON.parse(xhr.responseText || "{}");
-    if (xhr.status !== 200) return toast(r.error || "L'envoi a échoué");
+    let r = {};
+    try {
+      r = JSON.parse(xhr.responseText);
+    } catch {}
+    if (xhr.status !== 200) {
+      toast(r.error || "L'envoi a échoué");
+      return openJob(null);
+    }
     openJob(r.id);
   };
-  xhr.onerror = () => toast("L'envoi a échoué : le serveur ne répond pas");
+  xhr.onerror = () => {
+    toast("L'envoi a échoué : le studio ne répond pas");
+    openJob(null);
+  };
   xhr.send(f);
 }
 const file = $("#file");
-$("#uploadTop").onclick = () => file.click();
-$("#empty").onclick = () => file.click();
+for (const id of ["#newBtn", "#dropzone", "#another"]) $(id).onclick = () => file.click();
 file.onchange = () => {
   upload(file.files[0]);
   file.value = "";
 };
 let dragDepth = 0;
+const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
 addEventListener("dragenter", (e) => {
-  if ([...(e.dataTransfer?.types || [])].includes("Files")) {
-    dragDepth++;
-    $("#dropcover").classList.add("show");
-  }
+  if (!hasFiles(e)) return;
+  dragDepth++;
+  $("#dropcover").classList.add("show");
 });
-addEventListener("dragleave", () => {
+addEventListener("dragleave", (e) => {
+  if (!hasFiles(e)) return;
   if (--dragDepth <= 0) {
     dragDepth = 0;
     $("#dropcover").classList.remove("show");
@@ -563,36 +666,46 @@ addEventListener("drop", (e) => {
   upload(e.dataTransfer.files[0]);
 });
 
-/* ---------------------------------------------------------------- review actions */
+/* ---------------------------------------------------------------- actions */
+async function post(path, body) {
+  const r = await fetch(`/api/jobs/${currentJob}/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  if (r.ok) return true;
+  const j = await r.json().catch(() => ({}));
+  toast(r.status === 404 ? "Redémarre le studio dans ton terminal pour activer cette action" : j.error || "Ça n'a pas marché");
+  return false;
+}
 $("#approve").onclick = async () => {
-  const networks = [...document.querySelectorAll("#nets input:checked")].map((i) => i.dataset.net);
+  const networks = $$("#nets input:checked").map((i) => i.dataset.net);
   if (!networks.length) return toast("Coche au moins un réseau");
-  const r = await fetch(`/api/jobs/${currentJob}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ networks }) });
-  if (!r.ok) return toast((await r.json()).error || "Impossible de valider");
-  $("#review").classList.remove("show");
+  $("#approve").disabled = true;
+  await post("approve", { networks, captions: collectCaptions() });
+  $("#approve").disabled = false;
 };
 $("#fixBtn").onclick = () => {
-  $("#fix").classList.toggle("show");
+  $("#fix").hidden = false;
+  $("#acts").hidden = true;
   $("#fixText").focus();
+};
+$("#cancelFix").onclick = () => {
+  $("#fix").hidden = true;
+  $("#acts").hidden = false;
 };
 $("#sendFix").onclick = async () => {
   const text = $("#fixText").value.trim();
   if (!text) return $("#fixText").focus();
-  const r = await fetch(`/api/jobs/${currentJob}/fix`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
-  if (!r.ok) return toast((await r.json()).error || "Impossible d'envoyer la correction");
-  $("#fixText").value = "";
-  $("#fix").classList.remove("show");
-  $("#review").classList.remove("show");
+  if (await post("fix", { text })) {
+    $("#fixText").value = "";
+    showTab("activity");
+  }
 };
-function reveal() {
-  if (currentJob) fetch(`/api/jobs/${currentJob}/reveal`, { method: "POST" });
-}
-$("#reveal").onclick = reveal;
-$("#sound").onclick = () => {
-  const v = $("#vid");
-  v.muted = !v.muted;
-  $("#sound").textContent = v.muted ? "Son coupé" : "Son activé";
+$("#fixText").onkeydown = (e) => {
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("#sendFix").click();
 };
+$("#retry").onclick = async () => {
+  const id = currentJob;
+  if (await post("retry")) openJob(id);
+};
+$("#reveal").onclick = () => post("reveal");
 
 /* ---------------------------------------------------------------- projects */
 function setProject(p) {
@@ -600,42 +713,46 @@ function setProject(p) {
   $("#projSw").textContent = p.initial || p.name[0];
   $("#projSw").style.background = p.color || "#7C6CF0";
   $("#projName").textContent = p.name;
-  document.querySelectorAll(".pname").forEach((n) => (n.textContent = p.name));
 }
 $("#projBtn").onclick = (e) => {
   e.stopPropagation();
-  $("#menu").classList.toggle("open");
+  const open = $("#menu").classList.toggle("open");
+  $("#projBtn").setAttribute("aria-expanded", open);
 };
-document.addEventListener("click", () => $("#menu").classList.remove("open"));
+document.addEventListener("click", () => {
+  $("#menu").classList.remove("open");
+  $("#projBtn").setAttribute("aria-expanded", false);
+});
 
 addEventListener("resize", () => {
-  if (lastTarget) {
-    const [t, ax, ay, dx, dy] = lastTarget;
-    if (el(t)) {
-      const p = pt(t, ax, ay, dx, dy);
-      place(p.x, p.y, 0);
-    }
+  if (!lastTarget || $("#work").hidden) return;
+  const [t, ax, ay, dx, dy] = lastTarget;
+  const node = el(t);
+  if (node && node.getClientRects().length) {
+    const p = pt(node, ax, ay, dx, dy);
+    place(p.x, p.y, 0);
   }
 });
 
 (async function init() {
-  resetStage();
   projects = await fetch("/api/projects").then((r) => r.json());
   setProject(projects[0]);
   $("#menu").innerHTML =
-    projects.map((p) => `<button data-p="${p.id}"><span class="sw" style="background:${p.color}">${esc(p.initial || p.name[0])}</span>${esc(p.name)}</button>`).join("") +
+    projects.map((p) => `<button data-p="${p.id}"><span class="sw" style="background:${esc(p.color)}">${esc(p.initial || p.name[0])}</span>${esc(p.name)}</button>`).join("") +
     `<button class="add" id="addProj"><span class="sw" style="background:transparent;border:1px dashed var(--faint);color:var(--muted)">+</span>Nouveau projet</button>`;
-  document.querySelectorAll("#menu [data-p]").forEach(
+  $$("#menu [data-p]").forEach(
     (b) =>
       (b.onclick = async () => {
         setProject(projects.find((p) => p.id === b.dataset.p));
+        currentJob = null;
         const jobs = await refreshJobs();
         openJob(jobs[0]?.id || null);
       }),
   );
-  $("#addProj").onclick = () => toast("Pour l'instant : copie projects/move dans un nouveau dossier et modifie project.json");
+  $("#addProj").onclick = () => toast("Pour l'instant : copie le dossier projects/move et modifie project.json");
   await document.fonts.ready;
   const jobs = await refreshJobs();
   const fromHash = location.hash.match(/job=([\w-]+)/)?.[1];
-  openJob(fromHash || jobs[0]?.id || null);
+  const active = jobs.find((j) => ["running", "queued", "review"].includes(j.status));
+  openJob(jobs.some((j) => j.id === fromHash) ? fromHash : active?.id || null);
 })();
