@@ -151,6 +151,15 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`Le port ${PORT} est déjà pris : le studio tourne sans doute déjà sur http://localhost:${PORT}.`);
+    console.error(`Ferme l'autre fenêtre, ou lance-le sur un autre port : PORT=4621 npm start`);
+    process.exit(1);
+  }
+  throw err;
+});
+
 server.listen(PORT, HOST, () => {
   console.log(`Studio prêt sur http://localhost:${PORT}`);
   if (!fs.existsSync(WHISPER_MODEL)) console.warn("Attention : modèle Whisper introuvable :", WHISPER_MODEL);
