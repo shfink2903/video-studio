@@ -2,6 +2,16 @@
 
 Tu déposes une vidéo, Claude la monte, tu valides, et les fichiers sont exportés prêts à poster.
 
+## Installer
+
+Il faut Node 22+, ffmpeg et whisper-cli (`brew install ffmpeg whisper-cpp`), puis le modèle Whisper multilingue (466 Mo, pas inclus dans le dépôt) :
+
+```bash
+mkdir -p models && curl -L -o models/ggml-small.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin
+```
+
+Le rendu passe par HyperFrames (`npx hyperframes`).
+
 ## Lancer
 
 ```bash
