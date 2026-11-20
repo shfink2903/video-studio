@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#030305;
+  --panel:rgba(22,20,34,.55);
+  --panel-solid:#0d0c14;
+  --edge:rgba(255,255,255,.07);
+  --text:#F2F1F7;
+  --muted:#8C8A99;
+  --faint:#55536a;
+  --violet:#8B7BF7;
+  --violet-soft:rgba(139,123,247,.16);
+  --ok:#5FD3A1;
+  --warn:#F2C46D;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:-20% -10% auto auto;width:900px;height:700px;background:radial-gradient(closest-side,rgba(139,123,247,.20),transparent 70%);pointer-events:none;z-index:0}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,.drop:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+
+.wrap{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:20px 28px 60px}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:20px;margin-bottom:28px}
+.brand{font-weight:600;letter-spacing:-.01em;font-size:15px}
+.proj{position:relative}
+.proj-btn{display:flex;align-items:center;gap:10px;padding:7px 12px 7px 8px;border-radius:10px;background:var(--panel);box-shadow:inset 0 1px 0 var(--edge)}
+.proj-logo{width:22px;height:22px;border-radius:6px;background:var(--violet);display:grid;place-items:center;font-weight:700;font-size:12px;color:#120f24}
+.proj-btn svg{opacity:.6}
+.proj-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;padding:6px;border-radius:12px;background:var(--panel-solid);box-shadow:0 20px 50px rgba(0,0,0,.6),inset 0 1px 0 var(--edge);display:none}
+.proj-menu.open{display:block}
+.proj-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:8px;text-align:left}
+.proj-menu button:hover{background:rgba(255,255,255,.05)}
+.proj-menu .add{color:var(--muted)}
+.nav{display:flex;gap:4px;margin-left:8px}
+.nav button{padding:7px 12px;border-radius:8px;color:var(--muted)}
+.nav button.is-active{color:var(--text);background:rgba(255,255,255,.06)}
+.spacer{flex:1}
+.primary{background:var(--violet);color:#120f24;font-weight:600;padding:9px 16px;border-radius:10px;display:inline-flex;align-items:center;gap:8px}
+.primary:hover{filter:brightness(1.08)}
+.ghost{padding:9px 16px;border-radius:10px;background:rgba(255,255,255,.06)}
+.ghost:hover{background:rgba(255,255,255,.1)}
+
+/* panels */
+.panel{background:var(--panel);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--r);box-shadow:inset 0 1px 0 var(--edge)}
+h2{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px}
+
+/* live agent panel */
+.live{align-self:start;padding:22px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:24px}
+.frame{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;background:
+  radial-gradient(80% 60% at 50% 30%,#2a2440 0%,#110f1b 70%)}
+.frame .person{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:62%;aspect-ratio:1/1.25;border-radius:50% 50% 0 0;background:linear-gradient(#3a3352,#1b1828)}
+.frame .person::before{content:"";position:absolute;left:50%;top:-38%;transform:translateX(-50%);width:52%;aspect-ratio:1;border-radius:50%;background:linear-gradient(#4a4266,#2a2540)}
+.caption{position:absolute;left:10%;right:10%;bottom:22%;text-align:center;font-weight:700;font-size:17px;line-height:1.2;text-shadow:0 2px 12px rgba(0,0,0,.6);min-height:2.4em}
+.caption .w{opacity:.35;transition:opacity .15s,color .15s}
+.caption .w.on{opacity:1}
+.caption .w.hot{color:var(--violet)}
+.frame .tc{position:absolute;top:10px;left:10px;font-size:11px;color:var(--muted);background:rgba(0,0,0,.45);padding:2px 7px;border-radius:6px;font-variant-numeric:tabular-nums}
+.frame .fmt{position:absolute;top:10px;right:10px;font-size:11px;background:rgba(0,0,0,.45);padding:2px 7px;border-radius:6px}
+
+.agent-head{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.bot{width:58px;height:58px;flex:none;position:relative}
+.bot .head{position:absolute;inset:8px 4px 6px;border-radius:14px;background:linear-gradient(160deg,#2b2546,#15121f);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 28px rgba(139,123,247,.35)}
+.bot .antenna{position:absolute;left:50%;top:0;width:2px;height:9px;background:#3b3460;transform:translateX(-50%)}
+.bot .antenna::after{content:"";position:absolute;left:50%;top:-3px;width:7px;height:7px;border-radius:50%;background:var(--violet);transform:translateX(-50%);animation:pulse 1.4s ease-in-out infinite}
+.bot .eyes{position:absolute;left:14px;right:14px;top:24px;display:flex;justify-content:space-between}
+.bot .eye{width:9px;height:9px;border-radius:3px;background:var(--violet);box-shadow:0 0 10px var(--violet);animation:blink 4.2s infinite}
+.bot .mouth{position:absolute;left:50%;bottom:15px;width:16px;height:3px;border-radius:2px;background:rgba(139,123,247,.5);transform:translateX(-50%)}
+.bot.working .eyes{animation:look 2.4s ease-in-out infinite}
+.bot.working .mouth{animation:talk .5s ease-in-out infinite alternate}
+.bot.waiting .eye{background:var(--warn);box-shadow:0 0 10px var(--warn)}
+.bot.done .eye{background:var(--ok);box-shadow:0 0 10px var(--ok);height:4px;margin-top:3px;animation:none}
+@keyframes pulse{50%{opacity:.35}}
+@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.1)}}
+@keyframes look{0%,100%{transform:translateX(0)}30%{transform:translateX(-4px)}65%{transform:translateX(4px)}}
+@keyframes talk{to{width:8px}}
+
+.now{font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+.now-meta{color:var(--muted);font-size:13px;margin-top:2px}
+
+.bar{height:4px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;margin:4px 0 20px}
+.bar i{display:block;height:100%;width:0;background:var(--violet);box-shadow:0 0 12px var(--violet);transition:width .6s ease}
+
+.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:20px}
+.step{padding:10px 10px 9px;border-radius:10px;background:rgba(255,255,255,.03);color:var(--faint);font-size:12px;line-height:1.3;position:relative;transition:background .3s,color .3s}
+.step b{display:block;font-weight:600;font-size:12px;color:inherit;margin-bottom:2px;font-variant-numeric:tabular-nums}
+.step.done{color:var(--muted)}
+.step.done b{color:var(--ok)}
+.step.active{background:var(--violet-soft);color:var(--text)}
+.step.active b{color:var(--violet)}
+.step.wait{background:rgba(242,196,109,.12);color:var(--text)}
+.step.wait b{color:var(--warn)}
+
+.log-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.log{height:210px;overflow:auto;border-radius:10px;background:rgba(0,0,0,.28);padding:10px 12px;scroll-behavior:smooth}
+.log li{list-style:none;display:grid;grid-template-columns:62px 1fr;gap:10px;padding:4px 0;font-size:13px;animation:in .3s ease}
+.log time{color:var(--faint);font-variant-numeric:tabular-nums}
+.log .tool{color:var(--violet)}
+.log .ok{color:var(--ok)}
+@keyframes in{from{opacity:0;transform:translateY(4px)}}
+
+/* side */
+.side{display:flex;flex-direction:column;gap:20px}
+.drop{padding:22px;border-radius:var(--r);text-align:center;background:var(--panel);box-shadow:inset 0 1px 0 var(--edge);outline:1.5px dashed rgba(139,123,247,.35);outline-offset:-10px;transition:background .2s,outline-color .2s;cursor:pointer}
+.drop.over{background:var(--violet-soft);outline-color:var(--violet)}
+.drop .plus{width:38px;height:38px;margin:4px auto 10px;border-radius:10px;background:var(--violet-soft);display:grid;place-items:center;color:var(--violet)}
+.drop p{color:var(--muted);font-size:13px;margin-top:2px}
+
+.card{padding:18px}
+.card h2{margin-bottom:12px}
+.queue li{list-style:none;display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid rgba(255,255,255,.05)}
+.queue li:first-child{border-top:0}
+.thumb{width:30px;height:42px;border-radius:5px;flex:none;background:linear-gradient(160deg,#2a2440,#141220)}
+.queue .name{font-weight:500}
+.queue .st{font-size:12px;color:var(--muted)}
+.queue .st.live{color:var(--violet)}
+
+.review{display:none}
+.review.show{display:block;animation:in .4s ease}
+.review .nets{display:flex;flex-direction:column;gap:8px;margin:4px 0 14px}
+.net{padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.25)}
+.net .n{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px}
+.net p{font-size:13px}
+.net input{accent-color:var(--violet)}
+.actions{display:flex;gap:8px}
+.actions .primary{flex:1;justify-content:center}
+.fix{display:none;margin-top:10px}
+.fix.show{display:block}
+.fix textarea{width:100%;min-height:70px;resize:vertical;border-radius:10px;border:0;background:rgba(0,0,0,.3);color:var(--text);padding:10px;font:inherit;box-shadow:inset 0 1px 0 var(--edge)}
+.fix textarea:focus{outline:2px solid var(--violet)}
+.fix .primary{margin-top:8px}
+
+/* history */
+.history{margin-top:20px;padding:20px 22px}
+.history .h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-weight:500;color:var(--faint);font-size:12px;padding:8px 0}
+td{padding:11px 0;border-top:1px solid rgba(255,255,255,.05);font-size:13px}
+td.m{color:var(--muted)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.views{font-variant-numeric:tabular-nums}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;background:var(--panel-solid);box-shadow:0 20px 50px rgba(0,0,0,.6),inset 0 1px 0 var(--edge);padding:12px 18px;border-radius:12px;transition:.3s;z-index:10}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.sim{position:fixed;right:16px;bottom:16px;font-size:12px;color:var(--faint);z-index:5}
+.sim button{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+@media (max-width:1060px){.grid{grid-template-columns:1fr}.live{grid-template-columns:180px 1fr}}
+@media (max-width:720px){
+  .wrap{padding:16px 16px 60px}
+  .nav{display:none}
+  .top .primary span{display:none}
+  .live{grid-template-columns:1fr;padding:16px}
+  .frame{max-width:200px;margin:0 auto}
+  .steps{grid-template-columns:repeat(3,1fr)}
+  .history{overflow-x:auto}
+  table{min-width:560px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">Studio</div>
+    <div class="proj">
+      <button class="proj-btn" id="projBtn" aria-haspopup="true" aria-expanded="false">
+        <span class="proj-logo" id="projLogo">M</span>
+        <span id="projName">Move</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5 6 7.5 9 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="proj-menu" id="projMenu" role="menu">
+        <button role="menuitem" data-p="Move"><span class="proj-logo">M</span>Move</button>
+        <button role="menuitem" class="add" data-add>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 6v10M6 11h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Nouveau projet
+        </button>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="is-active">Studio</button>
+      <button>Historique</button>
+      <button>Identité du projet</button>
+      <button>Comptes</button>
+    </nav>
+    <div class="spacer"></div>
+    <button class="primary" id="uploadTop">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Déposer une vidéo</span>
+    </button>
+  </header>
+
+  <div class="grid">
+    <!-- LIVE -->
+    <section class="panel live" aria-live="polite">
+      <div class="frame">
+        <div class="person"></div>
+        <div class="caption" id="caption"></div>
+        <div class="tc" id="tc">00:00</div>
+        <div class="fmt" id="fmt">9:16</div>
+      </div>
+
+      <div>
+        <div class="agent-head">
+          <div class="bot working" id="bot" aria-hidden="true">
+            <div class="antenna"></div>
+            <div class="head"></div>
+            <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+            <div class="mouth"></div>
+          </div>
+          <div>
+            <div class="now" id="now">Je découvre ta vidéo</div>
+            <div class="now-meta" id="nowMeta">pitch-onboarding.mov · 1 min 42 · déposée il y a 2 min</div>
+          </div>
+        </div>
+
+        <div class="bar"><i id="bar"></i></div>
+
+        <div class="steps" id="steps">
+          <div class="step"><b>1</b>Transcription</div>
+          <div class="step"><b>2</b>Découpe</div>
+          <div class="step"><b>3</b>Habillage</div>
+          <div class="step"><b>4</b>Rendu</div>
+          <div class="step"><b>5</b>Ta validation</div>
+          <div class="step"><b>6</b>Publication</div>
+        </div>
+
+        <div class="log-head">
+          <h2>Ce que je fais</h2>
+          <span class="sub" id="elapsed">0 s</span>
+        </div>
+        <ul class="log" id="log"></ul>
+      </div>
+    </section>
+
+    <!-- SIDE -->
+    <aside class="side">
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Déposer une vidéo">
+        <div class="plus"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h2>Glisse ta vidéo ici</h2>
+        <p>Elle sera montée avec l'identité de <span class="pname">Move</span></p>
+        <input type="file" id="file" accept="video/*" hidden>
+      </div>
+
+      <div class="panel card review" id="review">
+        <h2>Prête à partir</h2>
+        <p class="sub" style="margin:-6px 0 12px">Vérifie le rendu et les légendes, puis choisis.</p>
+        <div class="nets">
+          <label class="net"><div class="n"><span>TikTok</span><input type="checkbox" checked></div><p>Tu as une idée depuis 6 mois et rien n'a bougé ? Voilà comment Move te fait passer à l'action.</p></label>
+          <label class="net"><div class="n"><span>Instagram Reels</span><input type="checkbox" checked></div><p>Arrête de prévoir. Commence à construire. Lien en bio.</p></label>
+          <label class="net"><div class="n"><span>YouTube Shorts</span><input type="checkbox" checked></div><p>De l'idée au premier pas en 2 minutes avec Move</p></label>
+          <label class="net"><div class="n"><span>LinkedIn</span><input type="checkbox"></div><p>Pourquoi la plupart des projets étudiants meurent avant la première ligne de code.</p></label>
+        </div>
+        <div class="actions">
+          <button class="primary" id="publish">Publier</button>
+          <button class="ghost" id="fixBtn">Corriger</button>
+        </div>
+        <div class="fix" id="fix">
+          <textarea id="fixText" placeholder="Ex. coupe l'intro plus tôt, sous-titres plus gros"></textarea>
+          <button class="primary" id="sendFix">Envoyer la correction</button>
+        </div>
+      </div>
+
+      <div class="panel card">
+        <h2>File d'attente</h2>
+        <ul class="queue" id="queue">
+          <li><div class="thumb"></div><div><div class="name">pitch-onboarding.mov</div><div class="st live" id="qLive">En cours de montage</div></div></li>
+          <li><div class="thumb"></div><div><div class="name">demo-defis.mov</div><div class="st">En attente</div></div></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <section class="panel history">
+    <div class="h"><h2>Historique</h2><span class="sub">Move · 4 vidéos</span></div>
+    <table>
+      <thead><tr><th>Vidéo</th><th>Statut</th><th>Réseaux</th><th>Vues</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr><td>Le problème des idées qui dorment</td><td><span class="dot" style="background:var(--ok)"></span>Publiée</td><td class="m">TikTok, Reels, Shorts</td><td class="views">12 480</td><td class="m">18 nov.</td></tr>
+        <tr><td>Présentation du dashboard</td><td><span class="dot" style="background:var(--ok)"></span>Publiée</td><td class="m">TikTok, Reels</td><td class="views">3 902</td><td class="m">14 nov.</td></tr>
+        <tr><td>Pourquoi j'ai créé Move</td><td><span class="dot" style="background:var(--warn)"></span>Corrigée, en attente</td><td class="m">—</td><td class="views">—</td><td class="m">12 nov.</td></tr>
+        <tr><td>Master vidéo 16:9</td><td><span class="dot" style="background:var(--ok)"></span>Publiée</td><td class="m">YouTube, LinkedIn</td><td class="views">1 216</td><td class="m">19 oct.</td></tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="sim">Maquette · données d'exemple · <button id="replay">rejouer</button></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const words="Tu as une idée depuis six mois et rien n'a bougé ?".split(" ");
+const hot=new Set(["idée","rien"]);
+$("#caption").innerHTML=words.map(w=>`<span class="w${hot.has(w)?" hot":""}">${w}</span> `).join("");
+
+// scripted agent events: [delay ms, step index, headline, log html]
+const script=[
+ [600,0,"Je transcris ta vidéo","<span class='tool'>Transcription</span> pitch-onboarding.mov (1 min 42)"],
+ [1800,0,null,"214 mots détectés, langue : français"],
+ [1400,1,"Je cherche le meilleur hook","<span class='tool'>Analyse</span> 3 accroches possibles repérées"],
+ [1600,1,null,"Je garde « Tu as une idée depuis six mois… » (00:41) comme ouverture"],
+ [1500,1,"Je coupe les silences et les ratés","<span class='tool'>Découpe</span> 11 silences supprimés, 2 prises ratées retirées"],
+ [1300,1,null,"Durée : 1 min 42 → 58 s"],
+ [1500,2,"Je pose les sous-titres","<span class='tool'>Sous-titres</span> style Move, mots clés en violet"],
+ [1500,2,null,"Zoom léger ajouté sur 3 moments forts"],
+ [1400,2,"Je choisis la musique","<span class='tool'>Musique</span> piste calme, volume baissé sous ta voix"],
+ [1500,3,"Je rends les formats","<span class='tool'>Rendu</span> 9:16 pour TikTok, Reels, Shorts"],
+ [1800,3,null,"<span class='tool'>Rendu</span> 4:5 pour LinkedIn"],
+ [1400,3,null,"<span class='ok'>Rendus terminés</span>, 2 fichiers prêts"],
+ [1200,3,"J'écris les légendes","<span class='tool'>Légendes</span> une par réseau, ton adapté"],
+ [1400,4,"J'attends ta validation","Rien ne part sans ton accord"]
+];
+let t0,timers=[],tick,capTimer;
+function stamp(){const s=Math.floor((Date.now()-t0)/1000);return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`}
+function log(html){const li=document.createElement("li");li.innerHTML=`<time>${stamp()}</time><span>${html}</span>`;$("#log").appendChild(li);$("#log").scrollTop=1e6}
+function setStep(i,state){[...document.querySelectorAll(".step")].forEach((el,k)=>{el.className="step"+(k<i?" done":k===i?" "+(state||"active"):"")});$("#bar").style.width=Math.min(100,(i/5)*100+8)+"%"}
+function bot(state){$("#bot").className="bot "+state}
+function run(){
+  timers.forEach(clearTimeout);timers=[];clearInterval(tick);clearInterval(capTimer);
+  $("#log").innerHTML="";$("#review").classList.remove("show");$("#fix").classList.remove("show");
+  $("#now").textContent="Je découvre ta vidéo";bot("working");setStep(0);$("#qLive").textContent="En cours de montage";
+  t0=Date.now();tick=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$("#elapsed").textContent=s+" s";$("#tc").textContent=stamp()},500);
+  let i=0;capTimer=setInterval(()=>{const w=document.querySelectorAll(".caption .w");w.forEach((e,k)=>e.classList.toggle("on",k<=i));i=(i+1)%(w.length+3)},260);
+  let acc=0;
+  script.forEach(([d,step,head,html],k)=>{acc+=d;timers.push(setTimeout(()=>{
+    if(head)$("#now").textContent=head;
+    const last=k===script.length-1;
+    setStep(step,last?"wait":"active");
+    if(last){bot("waiting");$("#review").classList.add("show");$("#qLive").textContent="En attente de ta validation";$("#nowMeta").textContent="Rendu et légendes prêts, à toi de vérifier"}
+    log(html)},acc))});
+}
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
+
+$("#publish").onclick=()=>{
+  const nets=[...document.querySelectorAll(".net")].filter(n=>n.querySelector("input").checked).map(n=>n.querySelector("span").textContent);
+  if(!nets.length){toast("Coche au moins un réseau");return}
+  setStep(5,"active");bot("working");$("#now").textContent="Je publie";$("#review").classList.remove("show");
+  nets.forEach((n,k)=>timers.push(setTimeout(()=>log(`<span class='tool'>Publication</span> ${n}`),600*(k+1))));
+  timers.push(setTimeout(()=>{setStep(6);bot("done");$("#bar").style.width="100%";$("#now").textContent="Publiée";$("#nowMeta").textContent=`En ligne sur ${nets.join(", ")}`;log("<span class='ok'>Publiée</span> sur "+nets.length+" réseaux");$("#qLive").textContent="Publiée";toast("Publiée sur "+nets.join(", "))},600*(nets.length+1)));
+};
+$("#fixBtn").onclick=()=>{$("#fix").classList.toggle("show");$("#fixText").focus()};
+$("#sendFix").onclick=()=>{
+  const v=$("#fixText").value.trim();if(!v){$("#fixText").focus();return}
+  $("#review").classList.remove("show");bot("working");setStep(2);$("#now").textContent="J'applique ta correction";
+  log(`<span class='tool'>Correction</span> « ${v.replace(/</g,"&lt;")} »`);
+  timers.push(setTimeout(()=>{log("<span class='ok'>Nouveau rendu prêt</span>");setStep(4,"wait");bot("waiting");$("#now").textContent="J'attends ta validation";$("#review").classList.add("show")},2600));
+  $("#fixText").value="";
+};
+$("#replay").onclick=run;
+
+// drop zone
+const drop=$("#drop"),file=$("#file");
+function addFile(name){
+  const li=document.createElement("li");
+  li.innerHTML=`<div class="thumb"></div><div><div class="name"></div><div class="st">En attente</div></div>`;
+  li.querySelector(".name").textContent=name;$("#queue").appendChild(li);toast("Ajoutée à la file : "+name);
+}
+drop.onclick=()=>file.click();
+drop.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();file.click()}};
+$("#uploadTop").onclick=()=>file.click();
+file.onchange=()=>{if(file.files[0])addFile(file.files[0].name);file.value=""};
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)addFile(f.name)});
+
+// project menu
+const pb=$("#projBtn"),pm=$("#projMenu");
+pb.onclick=e=>{e.stopPropagation();const o=pm.classList.toggle("open");pb.setAttribute("aria-expanded",o)};
+document.addEventListener("click",()=>{pm.classList.remove("open");pb.setAttribute("aria-expanded",false)});
+pm.querySelector("[data-add]").onclick=()=>toast("Création d'un projet : nom, logo, couleurs, comptes");
+
+run();
+</script>
+</body>
+</html>

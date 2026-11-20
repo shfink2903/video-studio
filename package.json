@@ -1,0 +1,12 @@
+{
+  "name": "video-studio",
+  "private": true,
+  "type": "module",
+  "description": "Claude monte tes vidéos : dépôt, montage automatique, validation, export.",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

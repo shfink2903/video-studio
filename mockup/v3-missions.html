@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08090A;
+  --panel:#0F1011;
+  --panel-2:#151618;
+  --panel-3:#1B1C1F;
+  --line:rgba(255,255,255,.06);
+  --line-2:rgba(255,255,255,.1);
+  --text:#EDEDEF;
+  --muted:#8A8F98;
+  --faint:#5A5E66;
+  --bot:#D97757;
+  --bot-soft:rgba(217,119,87,.14);
+  --ok:#4CB782;
+  --wait:#E2B340;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:"Inter",system-ui,sans-serif;font-size:13.5px;line-height:1.5;-webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss01"}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--bot);outline-offset:2px}
+
+/* top */
+.top{height:52px;display:flex;align-items:center;gap:14px;padding:0 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(8,9,10,.85);backdrop-filter:blur(12px);z-index:20}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600}
+.brand svg{width:20px;height:auto}
+.sep{width:1px;height:18px;background:var(--line-2)}
+.proj{position:relative}
+.proj-btn{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px}
+.proj-btn:hover{background:var(--panel-2)}
+.sw{width:18px;height:18px;border-radius:5px;background:#7C6CF0;color:#fff;font-size:10px;font-weight:600;display:grid;place-items:center}
+.menu{position:absolute;top:calc(100% + 6px);left:0;width:220px;padding:5px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line-2);box-shadow:0 20px 40px rgba(0,0,0,.5);display:none}
+.menu.open{display:block}
+.menu button{display:flex;align-items:center;gap:9px;width:100%;padding:7px 8px;border-radius:6px;text-align:left}
+.menu button:hover{background:var(--panel-3)}
+.menu .add{color:var(--muted)}
+.nav{display:flex;gap:2px}
+.nav a{padding:6px 10px;border-radius:7px;color:var(--muted);text-decoration:none}
+.nav a:hover{color:var(--text)}
+.nav a.on{color:var(--text);background:var(--panel-2)}
+.grow{flex:1}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:8px;font-weight:500;border:1px solid var(--line-2);background:var(--panel-2)}
+.btn:hover{background:var(--panel-3)}
+.btn-main{background:var(--text);color:#08090A;border-color:transparent}
+.btn-main:hover{background:#fff}
+
+main{max-width:1360px;margin:0 auto;padding:24px 20px 60px}
+
+/* job header */
+.job{display:flex;align-items:center;gap:20px;margin-bottom:20px}
+.job h1{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.job .sub{color:var(--muted);margin-top:2px}
+.job .stats{margin-left:auto;display:flex;gap:28px}
+.stat{text-align:right}
+.stat b{display:block;font-size:18px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.stat span{color:var(--faint);font-size:12px}
+.prog{height:2px;background:var(--line);margin-bottom:22px;border-radius:2px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--bot);transition:width .8s ease}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+
+/* missions */
+.missions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.m{position:relative;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;transition:border-color .2s,background .2s;display:flex;flex-direction:column;min-height:196px}
+.m:hover{border-color:var(--line-2)}
+.m.sel{border-color:rgba(255,255,255,.22)}
+.m.active{border-color:rgba(217,119,87,.55);background:linear-gradient(180deg,rgba(217,119,87,.07),var(--panel) 60%)}
+.m.waiting{border-color:rgba(226,179,64,.5)}
+.m-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--faint)}
+.m-head .n{font-variant-numeric:tabular-nums}
+.badge{font-size:11.5px;display:flex;align-items:center;gap:5px;color:var(--faint)}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.m.done .badge{color:var(--ok)}.m.done .badge::before{background:var(--ok)}
+.m.active .badge{color:var(--bot)}.m.active .badge::before{background:var(--bot);animation:pulse 1.2s infinite}
+.m.waiting .badge{color:var(--wait)}.m.waiting .badge::before{background:var(--wait);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.scene{height:100px;margin:8px 0 10px;border-radius:8px;background:var(--panel-2);overflow:hidden;position:relative}
+.scene svg{width:100%;height:100%;display:block;shape-rendering:crispEdges}
+.m-title{font-weight:500;font-size:13.5px}
+.m-now{color:var(--muted);font-size:12.5px;margin-top:2px;min-height:2.6em;line-height:1.3}
+.m:not(.active):not(.done):not(.waiting) .scene{opacity:.45}
+
+/* robot animations (only when the mission is live) */
+.bot .legA,.bot .legB,.bot,.bot .eyes{transform-box:fill-box}
+.active .bot{animation:bob .5s steps(2) infinite}
+.active .bot .legA{animation:leg .5s steps(1) infinite}
+.active .bot .legB{animation:leg .5s steps(1) infinite .25s}
+.active .bot .eyes{animation:glance 2.8s steps(1) infinite}
+.done .bot .eyes rect{height:1px;transform:translateY(1px)}
+.idle .bot .eyes rect{height:.5px;transform:translateY(1.5px)}
+@keyframes bob{50%{transform:translateY(-1px)}}
+@keyframes leg{50%{transform:translateY(-1px)}}
+@keyframes glance{0%,55%{transform:translateX(0)}56%,78%{transform:translateX(1px)}79%{transform:translateX(-1px)}}
+.zz{opacity:0}
+.idle .zz{opacity:1;animation:zz 2.4s ease-in-out infinite}
+@keyframes zz{0%{transform:translate(0,0);opacity:0}30%{opacity:.8}100%{transform:translate(4px,-6px);opacity:0}}
+.prop{opacity:.35}
+.active .prop,.waiting .prop,.done .prop{opacity:1}
+.check{opacity:0}
+.done .check{opacity:1}
+/* per-mission props */
+.active .wave rect{animation:wave .6s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:bottom}
+.active .wave rect:nth-child(2){animation-delay:.15s}.active .wave rect:nth-child(3){animation-delay:.3s}.active .wave rect:nth-child(4){animation-delay:.45s}.active .wave rect:nth-child(5){animation-delay:.1s}
+@keyframes wave{from{transform:scaleY(.25)}to{transform:scaleY(1)}}
+.active .loupe{animation:scan 2.4s ease-in-out infinite}
+@keyframes scan{0%,100%{transform:translate(0,0)}33%{transform:translate(9px,4px)}66%{transform:translate(3px,8px)}}
+.active .strip{animation:slide 1.6s linear infinite}
+@keyframes slide{to{transform:translateX(-8px)}}
+.active .blade{animation:snip .4s steps(1) infinite;transform-box:fill-box;transform-origin:left center}
+@keyframes snip{50%{transform:rotate(-25deg)}}
+.active .chip{animation:fall 1.6s ease-in infinite}
+@keyframes fall{0%{transform:translateY(0);opacity:1}100%{transform:translateY(12px);opacity:0}}
+.active .type rect{animation:type 2.4s steps(1) infinite;opacity:0}
+.active .type rect:nth-child(2){animation-delay:.3s}.active .type rect:nth-child(3){animation-delay:.6s}.active .type rect:nth-child(4){animation-delay:.9s}.active .type rect:nth-child(5){animation-delay:1.2s}
+@keyframes type{0%{opacity:0}10%,100%{opacity:1}}
+.done .type rect{opacity:1}
+.active .fill{animation:fill 2.6s linear infinite;transform-box:fill-box;transform-origin:left}
+@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.active .gear{animation:spin 1.2s steps(4) infinite;transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(90deg)}}
+.active .pen{animation:write 1.2s ease-in-out infinite}
+@keyframes write{50%{transform:translateX(6px)}}
+.active .lines rect{animation:type 2.4s steps(1) infinite;opacity:0}
+.active .lines rect:nth-child(2){animation-delay:.6s}.active .lines rect:nth-child(3){animation-delay:1.2s}
+.done .lines rect{opacity:1}
+.waiting .q{animation:hop 1s ease-in-out infinite}
+@keyframes hop{50%{transform:translateY(-2px)}}
+.q{opacity:0}.waiting .q{opacity:1}
+.active .plane{animation:fly 1.8s ease-in infinite}
+@keyframes fly{0%{transform:translate(0,0);opacity:1}100%{transform:translate(18px,-14px);opacity:0}}
+.done .plane{opacity:0}
+
+/* detail */
+.detail{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.d-head{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.d-head h2{font-size:14px;font-weight:600}
+.d-head .follow{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 8px;border-radius:6px}
+.d-head .follow:hover{background:var(--panel-2);color:var(--text)}
+.d-head .follow.live{color:var(--bot)}
+.log{padding:8px 16px 14px;max-height:240px;overflow:auto}
+.log li{list-style:none;display:grid;grid-template-columns:44px 18px 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);animation:in .25s ease}
+.log li:last-child{border-bottom:0}
+.log time{color:var(--faint);font-variant-numeric:tabular-nums;font-size:12px;padding-top:1px}
+.log .ic{color:var(--faint);font-size:12px;padding-top:1px}
+.log .ic.ok{color:var(--ok)}
+.log .ic.act{color:var(--bot)}
+.log .k{color:var(--muted)}
+.log .empty{grid-template-columns:1fr;color:var(--muted);border:0}
+@keyframes in{from{opacity:0;transform:translateY(3px)}}
+
+/* side */
+.side{display:flex;flex-direction:column;gap:14px;position:sticky;top:72px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.preview{padding:12px}
+.frame{aspect-ratio:9/16;max-height:380px;margin:0 auto;border-radius:8px;overflow:hidden;position:relative;background:radial-gradient(90% 60% at 50% 25%,#2A2C31,#121315 75%)}
+.frame .person{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:62%;aspect-ratio:1/1.2;border-radius:50% 50% 0 0;background:linear-gradient(#33363C,#1A1B1E)}
+.frame .person::before{content:"";position:absolute;left:50%;top:-40%;transform:translateX(-50%);width:52%;aspect-ratio:1;border-radius:50%;background:linear-gradient(#41444B,#26282C)}
+.caption{position:absolute;left:8%;right:8%;bottom:20%;text-align:center;font-weight:700;font-size:17px;line-height:1.2;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.caption .w{opacity:.25;transition:opacity .12s}.caption .w.on{opacity:1}.caption .w.hot{color:#9D8FF8}
+.tag{position:absolute;top:8px;font-size:11px;background:rgba(0,0,0,.5);padding:2px 7px;border-radius:5px;font-variant-numeric:tabular-nums}
+.pmeta{display:flex;justify-content:space-between;color:var(--faint);font-size:12px;margin-top:10px}
+
+.review{padding:14px;display:none}
+.review.show{display:block;animation:in .3s ease}
+.review h3{font-size:14px;font-weight:600}
+.review > p{color:var(--muted);font-size:12.5px;margin:2px 0 10px}
+.net{display:block;padding:9px 11px;border-radius:8px;background:var(--panel-2);margin-bottom:6px;cursor:pointer;border:1px solid transparent}
+.net:has(input:checked){border-color:var(--line-2)}
+.net .n{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;margin-bottom:2px}
+.net input{accent-color:var(--bot)}
+.net p{font-size:12.5px}
+.acts{display:flex;gap:6px;margin-top:10px}
+.acts .btn-main{flex:1;justify-content:center}
+.fix{display:none;margin-top:8px}
+.fix.show{display:block}
+.fix textarea{width:100%;min-height:64px;padding:9px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);font:inherit;resize:vertical}
+.fix .btn{margin-top:6px}
+
+.drop{padding:16px;border:1px dashed var(--line-2);border-radius:12px;text-align:center;cursor:pointer;transition:.2s}
+.drop:hover,.drop.over{border-color:var(--bot);background:var(--bot-soft)}
+.drop b{font-weight:500;display:block}
+.drop span{color:var(--faint);font-size:12px}
+
+/* other jobs */
+.jobs{margin-top:24px}
+.jobs h2{font-size:14px;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between}
+.jobs h2 span{color:var(--faint);font-weight:400;font-size:12px}
+.jrow{display:grid;grid-template-columns:44px 1fr 170px 140px 90px 70px;gap:14px;align-items:center;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
+.jrow .mini{height:30px;background:var(--panel-2);border-radius:6px;overflow:hidden}
+.jrow .mini svg{width:100%;height:100%;shape-rendering:crispEdges}
+.jrow .t{font-weight:500}
+.jrow .s{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.jrow .s i{width:6px;height:6px;border-radius:50%}
+.jrow .r,.jrow .d{color:var(--faint)}
+.jrow .v{font-variant-numeric:tabular-nums;text-align:right}
+
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,14px);opacity:0;background:var(--panel-3);border:1px solid var(--line-2);padding:10px 15px;border-radius:9px;transition:.3s;z-index:30;box-shadow:0 14px 30px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.sim{position:fixed;right:14px;bottom:10px;font-size:12px;color:var(--faint);z-index:5}
+.sim button{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+
+@media (max-width:1180px){.missions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:980px){.layout{grid-template-columns:1fr}.side{position:static}.job .stats{display:none}}
+@media (max-width:720px){
+  .nav,.top .sep{display:none}
+  .top .btn-main span{display:none}
+  main{padding:18px 16px 60px}
+  .jrow{grid-template-columns:44px 1fr 90px}
+  .jrow .r,.jrow .d,.jrow .v{display:none}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- reusable robot: 14x11 pixel grid -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <g id="botBody">
+      <rect x="2" y="0" width="10" height="7" fill="#D97757"/>
+      <rect x="0" y="3" width="2" height="2" fill="#D97757"/>
+      <rect x="12" y="3" width="2" height="2" fill="#D97757"/>
+    </g>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 14 11" shape-rendering="crispEdges"><use href="#botBody"/><rect x="4" y="2" width="1" height="2" fill="#08090A"/><rect x="9" y="2" width="1" height="2" fill="#08090A"/><rect x="3" y="7" width="1" height="3" fill="#D97757"/><rect x="5" y="7" width="1" height="3" fill="#D97757"/><rect x="8" y="7" width="1" height="3" fill="#D97757"/><rect x="10" y="7" width="1" height="3" fill="#D97757"/></svg>
+    Studio
+  </div>
+  <span class="sep"></span>
+  <div class="proj">
+    <button class="proj-btn" id="projBtn" aria-expanded="false"><span class="sw">M</span>Move
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 4 5 6.5 7.5 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".6"/></svg>
+    </button>
+    <div class="menu" id="menu">
+      <button><span class="sw">M</span>Move</button>
+      <button class="add" id="addProj"><span class="sw" style="background:transparent;border:1px dashed var(--faint);color:var(--muted)">+</span>Nouveau projet</button>
+    </div>
+  </div>
+  <nav class="nav">
+    <a href="#" class="on">Studio</a>
+    <a href="#">Historique</a>
+    <a href="#">Identité</a>
+    <a href="#">Comptes</a>
+  </nav>
+  <div class="grow"></div>
+  <button class="btn btn-main" id="uploadTop">
+    <svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+    <span>Nouvelle vidéo</span>
+  </button>
+</header>
+
+<main>
+  <div class="job">
+    <div>
+      <h1>pitch-onboarding.mov</h1>
+      <div class="sub" id="jobSub">Claude monte ta vidéo pour Move</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="sMission">1 / 8</b><span>Mission</span></div>
+      <div class="stat"><b id="sDur">1:42</b><span>Durée</span></div>
+      <div class="stat"><b id="sTime">0 s</b><span>Temps passé</span></div>
+    </div>
+  </div>
+  <div class="prog"><i id="prog"></i></div>
+
+  <div class="layout">
+    <div>
+      <div class="missions" id="missions"></div>
+
+      <section class="detail" aria-live="polite">
+        <div class="d-head">
+          <h2 id="dTitle">Transcription</h2>
+          <button class="follow live" id="follow">En direct</button>
+        </div>
+        <ul class="log" id="log"></ul>
+      </section>
+
+      <section class="jobs">
+        <h2>Autres vidéos de Move <span>3</span></h2>
+        <div class="jrow">
+          <div class="mini"><svg viewBox="0 0 40 14"><g transform="translate(13 2)" opacity=".45"><use href="#botBody"/><rect x="4" y="3" width="1" height=".5" fill="#08090A"/><rect x="9" y="3" width="1" height=".5" fill="#08090A"/></g></svg></div>
+          <div class="t">demo-defis.mov</div>
+          <div class="s"><i style="background:var(--faint)"></i>En file d'attente</div>
+          <div class="r">—</div><div class="v">—</div><div class="d">Aujourd'hui</div>
+        </div>
+        <div class="jrow">
+          <div class="mini"><svg viewBox="0 0 40 14"><g transform="translate(13 2)"><use href="#botBody"/><rect x="4" y="3" width="1" height="1" fill="#08090A"/><rect x="9" y="3" width="1" height="1" fill="#08090A"/></g></svg></div>
+          <div class="t">Le problème des idées qui dorment</div>
+          <div class="s"><i style="background:var(--ok)"></i>Publiée</div>
+          <div class="r">TikTok, Reels, Shorts</div><div class="v">12 480</div><div class="d">18 nov.</div>
+        </div>
+        <div class="jrow">
+          <div class="mini"><svg viewBox="0 0 40 14"><g transform="translate(13 2)"><use href="#botBody"/><rect x="4" y="3" width="1" height="1" fill="#08090A"/><rect x="9" y="3" width="1" height="1" fill="#08090A"/></g></svg></div>
+          <div class="t">Présentation du dashboard</div>
+          <div class="s"><i style="background:var(--ok)"></i>Publiée</div>
+          <div class="r">TikTok, Reels</div><div class="v">3 902</div><div class="d">14 nov.</div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="side">
+      <div class="card preview">
+        <div class="frame">
+          <div class="person"></div>
+          <div class="caption" id="caption"></div>
+          <span class="tag" style="left:8px" id="tc">00:00</span>
+          <span class="tag" style="right:8px">9:16</span>
+        </div>
+        <div class="pmeta"><span>Aperçu du montage</span><span id="pDur">1:42</span></div>
+      </div>
+
+      <div class="card review" id="review">
+        <h3>Prête à partir</h3>
+        <p>Relis les légendes et choisis les réseaux.</p>
+        <label class="net"><div class="n"><span>TikTok</span><input type="checkbox" checked></div><p>Tu as une idée depuis 6 mois et rien n'a bougé ? Voilà comment Move te fait passer à l'action.</p></label>
+        <label class="net"><div class="n"><span>Instagram Reels</span><input type="checkbox" checked></div><p>Arrête de prévoir. Commence à construire. Lien en bio.</p></label>
+        <label class="net"><div class="n"><span>YouTube Shorts</span><input type="checkbox" checked></div><p>De l'idée au premier pas en 2 minutes avec Move</p></label>
+        <label class="net"><div class="n"><span>LinkedIn</span><input type="checkbox"></div><p>Pourquoi la plupart des projets étudiants meurent avant la première ligne de code.</p></label>
+        <div class="acts">
+          <button class="btn btn-main" id="publish">Publier</button>
+          <button class="btn" id="fixBtn">Corriger</button>
+        </div>
+        <div class="fix" id="fix">
+          <textarea id="fixText" placeholder="Ex. coupe l'intro plus tôt, sous-titres plus gros"></textarea>
+          <button class="btn btn-main" id="sendFix">Envoyer la correction</button>
+        </div>
+      </div>
+
+      <div class="drop" id="drop" tabindex="0" role="button">
+        <b>Glisse une vidéo ici</b>
+        <span>Montée avec l'identité de Move</span>
+        <input type="file" id="file" accept="video/*" hidden>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="sim">Maquette, données d'exemple · <button id="replay">rejouer</button></div>
+
+<script>
+const $=s=>document.querySelector(s);
+
+/* robot: x,y = position in a 64x32 scene */
+const bot=(x,y,extra="")=>`<g transform="translate(${x} ${y-4}) scale(1.4)"><g class="bot">
+  <use href="#botBody"/>
+  <g class="eyes" fill="#08090A"><rect x="4" y="2" width="1" height="2"/><rect x="9" y="2" width="1" height="2"/></g>
+  <g fill="#D97757"><g class="legA"><rect x="3" y="7" width="1" height="3"/><rect x="8" y="7" width="1" height="3"/></g><g class="legB"><rect x="5" y="7" width="1" height="3"/><rect x="10" y="7" width="1" height="3"/></g></g>
+  ${extra}
+  </g>
+  <g class="zz" fill="#8A8F98"><rect x="14" y="-3" width="2" height="1"/><rect x="15" y="-2" width="1" height="1"/><rect x="14" y="-1" width="2" height="1"/></g>
+  <g class="check" fill="#4CB782"><rect x="13" y="-2" width="1" height="1"/><rect x="14" y="-1" width="1" height="1"/><rect x="15" y="-2" width="1" height="1"/><rect x="16" y="-3" width="1" height="1"/></g>
+</g>`;
+const G="#3A3D44",L="#5A5E66",W="#EDEDEF";
+const props={
+  transcription:`${bot(10,19,`<g fill="${W}"><rect x="2" y="-2" width="10" height="1"/><rect x="1" y="-1" width="1" height="2"/><rect x="12" y="-1" width="1" height="2"/><rect x="0" y="1" width="2" height="3"/><rect x="12" y="1" width="2" height="3"/></g>`)}
+    <g class="prop"><g class="wave" fill="#D97757"><rect x="36" y="14" width="2" height="14"/><rect x="40" y="10" width="2" height="18"/><rect x="44" y="16" width="2" height="12"/><rect x="48" y="12" width="2" height="16"/><rect x="52" y="18" width="2" height="10"/></g></g>`,
+  hook:`${bot(8,19)}
+    <g class="prop"><g fill="${G}"><rect x="30" y="8" width="24" height="2"/><rect x="30" y="13" width="20" height="2"/><rect x="30" y="18" width="26" height="2"/><rect x="30" y="23" width="16" height="2"/></g>
+    <rect x="30" y="13" width="20" height="2" fill="#D97757" opacity=".8"/>
+    <g class="loupe"><g fill="none" stroke="${W}" stroke-width="1"><rect x="31.5" y="6.5" width="7" height="7"/></g><rect x="38" y="13" width="2" height="2" fill="${W}"/><rect x="40" y="15" width="2" height="2" fill="${W}"/></g></g>`,
+  cut:`${bot(6,19)}
+    <g class="prop"><g class="strip"><rect x="24" y="12" width="48" height="10" fill="${G}"/><g fill="#0F1011"><rect x="26" y="13" width="6" height="8"/><rect x="34" y="13" width="6" height="8"/><rect x="42" y="13" width="6" height="8"/><rect x="50" y="13" width="6" height="8"/><rect x="58" y="13" width="6" height="8"/><rect x="66" y="13" width="6" height="8"/></g></g>
+    <rect class="chip" x="40" y="22" width="5" height="3" fill="${L}"/>
+    <g transform="translate(36 6)"><rect x="0" y="5" width="2" height="2" fill="${W}"/><rect class="blade" x="2" y="5" width="8" height="1" fill="${W}"/><rect x="2" y="6" width="8" height="1" fill="${W}"/></g></g>`,
+  subs:`${bot(6,19)}
+    <g class="prop"><rect x="24" y="4" width="34" height="24" fill="#1F2125"/><rect x="24" y="4" width="34" height="24" fill="none" stroke="${G}"/>
+    <g class="type" fill="${W}"><rect x="29" y="20" width="4" height="2"/><rect x="34" y="20" width="5" height="2"/><rect x="40" y="20" width="4" height="2" fill="#9D8FF8"/><rect x="45" y="20" width="4" height="2"/><rect x="50" y="20" width="3" height="2"/></g></g>`,
+  render:`${bot(6,19)}
+    <g class="prop"><rect x="26" y="8" width="11" height="18" fill="#1F2125" stroke="${G}"/><rect x="40" y="12" width="16" height="13" fill="#1F2125" stroke="${G}"/>
+    <rect x="26" y="28" width="30" height="2" fill="${G}"/><rect class="fill" x="26" y="28" width="30" height="2" fill="#D97757"/>
+    <g class="gear" transform="translate(45 15)"><rect x="2" y="0" width="2" height="6" fill="${L}"/><rect x="0" y="2" width="6" height="2" fill="${L}"/></g></g>`,
+  captions:`${bot(6,19)}
+    <g class="prop"><rect x="26" y="5" width="28" height="22" fill="#1F2125" stroke="${G}"/>
+    <g class="lines" fill="${L}"><rect x="29" y="9" width="20" height="2"/><rect x="29" y="14" width="22" height="2"/><rect x="29" y="19" width="14" height="2"/></g>
+    <g class="pen"><rect x="44" y="18" width="2" height="6" fill="${W}"/><rect x="44" y="24" width="2" height="1" fill="#D97757"/></g></g>`,
+  review:`${bot(25,19)}
+    <g class="prop q" fill="#E2B340"><rect x="40" y="6" width="4" height="1"/><rect x="44" y="7" width="1" height="2"/><rect x="42" y="9" width="2" height="1"/><rect x="42" y="10" width="1" height="2"/><rect x="42" y="13" width="1" height="1"/></g>`,
+  publish:`${bot(8,19)}
+    <g class="prop"><g class="plane" fill="${W}"><rect x="28" y="16" width="8" height="1"/><rect x="30" y="15" width="5" height="1"/><rect x="32" y="14" width="2" height="1"/><rect x="30" y="17" width="4" height="1"/></g>
+    <g fill="${G}"><rect x="46" y="6" width="5" height="5"/><rect x="53" y="10" width="5" height="5"/><rect x="47" y="15" width="5" height="5"/></g></g>`
+};
+
+const M=[
+ {id:"transcription",title:"Transcription",idle:"Écouter ta voix et tout écrire",events:[
+   [700,"act","J'écoute la vidéo","1 min 42 en français"],
+   [1500,"act","Transcription en cours",""],
+   [1500,"ok","214 mots transcrits","Avec le minutage de chaque mot"]]},
+ {id:"hook",title:"Accroche",idle:"Trouver la phrase qui retient",events:[
+   [900,"act","Je relis la transcription",""],
+   [1300,"act","3 accroches possibles","00:04, 00:41, 01:12"],
+   [1300,"ok","Accroche choisie","« Tu as une idée depuis six mois… » passe en ouverture"]]},
+ {id:"cut",title:"Découpe",idle:"Retirer silences et ratés",events:[
+   [900,"act","Je repère les silences","Seuil -32 dB, plus de 0,4 s"],
+   [1400,"act","11 silences retirés",""],
+   [1200,"ok","2 prises ratées retirées","Durée 1:42 → 0:58",()=>{$("#sDur").textContent="0:58";$("#pDur").textContent="0:58"}]]},
+ {id:"subs",title:"Sous-titres",idle:"Poser les mots à l'écran",events:[
+   [900,"act","J'écris les sous-titres","Style de Move, mots clés en violet"],
+   [1400,"ok","3 zooms ajoutés","Sur les moments forts"]]},
+ {id:"render",title:"Rendu",idle:"Sortir chaque format",events:[
+   [900,"act","Rendu 9:16","TikTok, Reels, Shorts"],
+   [1800,"act","Rendu 4:5","LinkedIn"],
+   [1500,"ok","2 fichiers prêts","pitch-916.mp4 · pitch-45.mp4"]]},
+ {id:"captions",title:"Légendes",idle:"Écrire un texte par réseau",events:[
+   [900,"act","J'écris les légendes","Ton adapté à chaque réseau"],
+   [1500,"ok","4 légendes prêtes",""]]},
+ {id:"review",title:"Ta validation",idle:"Attendre ton accord",events:[
+   [700,"wait","En attente de ta validation","Rien ne part sans ton accord"]]},
+ {id:"publish",title:"Publication",idle:"Poster sur tes réseaux",events:[]}
+];
+
+/* build cards */
+$("#missions").innerHTML=M.map((m,i)=>`
+  <button class="m idle" data-i="${i}">
+    <div class="m-head"><span class="n">${i+1}</span><span class="badge">À venir</span></div>
+    <div class="scene"><svg viewBox="0 0 64 32">${props[m.id]}</svg></div>
+    <div class="m-title">${m.title}</div>
+    <div class="m-now">${m.idle}</div>
+  </button>`).join("");
+const cards=[...document.querySelectorAll(".m")];
+const logs=M.map(()=>[]);
+let cur=0,selected=0,following=true,t0,timers=[],tick,capT;
+
+const sec=()=>Math.floor((Date.now()-t0)/1000);
+const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+
+function setCard(i,state,now){
+  const c=cards[i];
+  c.classList.remove("idle","active","done","waiting");c.classList.add(state);
+  c.querySelector(".badge").textContent={idle:"À venir",active:"En cours",done:"Terminée",waiting:"À toi"}[state];
+  if(now)c.querySelector(".m-now").textContent=now;
+}
+function select(i,byUser){
+  selected=i;if(byUser)following=(i===cur);
+  cards.forEach((c,k)=>c.classList.toggle("sel",k===i&&!following));
+  $("#dTitle").textContent=M[i].title;
+  $("#follow").classList.toggle("live",following);
+  $("#follow").textContent=following?"En direct":"Revenir au direct";
+  renderLog();
+}
+function renderLog(){
+  const items=logs[selected];
+  $("#log").innerHTML=items.length?items.map(e=>`<li><time>${e.t}</time><span class="ic ${e.k}">${e.k==="ok"?"✓":e.k==="wait"?"!":"●"}</span><span>${e.h}${e.d?` <span class="k">· ${e.d}</span>`:""}</span></li>`).join("")
+    :`<li class="empty">${selected===cur?"Claude démarre cette mission…":"Claude n'a pas encore commencé cette mission."}</li>`;
+  $("#log").scrollTop=1e6;
+}
+function push(i,k,h,d){logs[i].push({t:fmt(sec()),k,h,d});if(selected===i)renderLog()}
+function progress(){$("#prog").style.width=(cur/(M.length-1))*100+"%";$("#sMission").textContent=`${Math.min(cur+1,8)} / 8`}
+
+function startMission(i){
+  cur=i;progress();
+  const m=M[i];
+  setCard(i,m.id==="review"?"waiting":"active");
+  if(following)select(i);
+  let acc=0;
+  m.events.forEach(([d,k,h,det,fx],j)=>{acc+=d;timers.push(setTimeout(()=>{
+    push(i,k,h,det);
+    cards[i].querySelector(".m-now").textContent=h;
+    if(fx)fx();
+    if(j===m.events.length-1&&k==="ok"){setCard(i,"done");startMission(i+1)}
+    if(k==="wait"){$("#review").classList.add("show");$("#jobSub").textContent="Prête, en attente de ta validation"}
+  },acc))});
+}
+
+function run(){
+  timers.forEach(clearTimeout);timers=[];clearInterval(tick);clearInterval(capT);
+  logs.forEach(l=>l.length=0);
+  cards.forEach((c,i)=>setCard(i,"idle",M[i].idle));
+  $("#review").classList.remove("show");$("#fix").classList.remove("show");
+  $("#sDur").textContent="1:42";$("#pDur").textContent="1:42";$("#jobSub").textContent="Claude monte ta vidéo pour Move";
+  following=true;t0=Date.now();
+  tick=setInterval(()=>{$("#sTime").textContent=sec()+" s";$("#tc").textContent="00:"+String(sec()%60).padStart(2,"0")},500);
+  let w=0;capT=setInterval(()=>{const ws=document.querySelectorAll(".caption .w");ws.forEach((e,k)=>e.classList.toggle("on",k<=w));w=(w+1)%(ws.length+4)},240);
+  startMission(0);
+}
+
+cards.forEach((c,i)=>c.onclick=()=>select(i,true));
+$("#follow").onclick=()=>{following=true;select(cur)};
+
+/* caption preview */
+const words="Tu as une idée depuis six mois et rien n'a bougé ?".split(" ");
+$("#caption").innerHTML=words.map(x=>`<span class="w${x==="idée"||x==="rien"?" hot":""}">${x}</span> `).join("");
+
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("show"),2600)}
+
+$("#publish").onclick=()=>{
+  const nets=[...document.querySelectorAll(".net")].filter(n=>n.querySelector("input").checked).map(n=>n.querySelector("span").textContent);
+  if(!nets.length){toast("Coche au moins un réseau");return}
+  $("#review").classList.remove("show");
+  push(6,"ok","Validée par toi","");setCard(6,"done","Validée");
+  cur=7;progress();setCard(7,"active","Je publie");if(following)select(7);
+  $("#jobSub").textContent="Publication en cours";
+  nets.forEach((n,k)=>timers.push(setTimeout(()=>{push(7,"act","Publié sur "+n,"");cards[7].querySelector(".m-now").textContent="Publié sur "+n},800*(k+1))));
+  timers.push(setTimeout(()=>{push(7,"ok","En ligne sur "+nets.length+" réseaux",nets.join(", "));setCard(7,"done","En ligne sur "+nets.length+" réseaux");$("#prog").style.width="100%";$("#jobSub").textContent="Publiée sur "+nets.join(", ");toast("Publiée sur "+nets.join(", "))},800*(nets.length+1)));
+};
+$("#fixBtn").onclick=()=>{$("#fix").classList.toggle("show");$("#fixText").focus()};
+$("#sendFix").onclick=()=>{
+  const v=$("#fixText").value.trim();if(!v){$("#fixText").focus();return}
+  $("#review").classList.remove("show");$("#fix").classList.remove("show");$("#fixText").value="";
+  push(6,"act","Correction demandée",v);setCard(6,"idle","Correction en cours");
+  [3,4].forEach(i=>setCard(i,"idle"));
+  cur=3;progress();setCard(3,"active","J'applique ta correction");if(following)select(3);
+  timers.push(setTimeout(()=>{push(3,"ok","Correction appliquée",v);setCard(3,"done");setCard(4,"active","Nouveau rendu");cur=4;progress();if(following)select(4)},1800));
+  timers.push(setTimeout(()=>{push(4,"ok","Nouveau rendu prêt","");setCard(4,"done");cur=6;progress();setCard(6,"waiting","Nouvelle version à valider");if(following)select(6);push(6,"wait","Nouvelle version à valider","");$("#review").classList.add("show")},3800));
+};
+
+/* upload + project menu */
+const file=$("#file"),drop=$("#drop");
+[drop,$("#uploadTop")].forEach(b=>b.onclick=()=>file.click());
+drop.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();file.click()}};
+const added=n=>toast("Ajoutée à la file : "+n);
+file.onchange=()=>{if(file.files[0])added(file.files[0].name);file.value=""};
+["dragenter","dragover"].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.add("over")}));
+["dragleave","drop"].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.remove("over")}));
+drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)added(f.name)});
+$("#projBtn").onclick=e=>{e.stopPropagation();$("#menu").classList.toggle("open")};
+document.addEventListener("click",()=>$("#menu").classList.remove("open"));
+$("#addProj").onclick=()=>toast("Nouveau projet : nom, logo, couleurs, comptes");
+$("#replay").onclick=run;
+
+run();
+</script>
+</body>
+</html>

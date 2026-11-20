@@ -1,0 +1,28 @@
+{
+  "id": "move",
+  "name": "Move",
+  "initial": "M",
+  "color": "#7C6CF0",
+  "tone": "Simon, fondateur de Move (moveapp.dev), parle à des 16-25 ans qui ont des idées mais ne passent pas à l'action. Ton direct, tutoiement, énergie de builder, jamais corporate. Slogan : « Arrête de prévoir. Commence à construire. »",
+  "networks": ["TikTok", "Instagram Reels", "YouTube Shorts", "LinkedIn"],
+  "formats": ["9:16", "4:5"],
+  "captions": {
+    "font": "Inter",
+    "weight": 900,
+    "color": "#FFFFFF",
+    "highlight": "#9D8FF8",
+    "wordsPerGroup": 3
+  },
+  "silence": {
+    "noiseDb": -35,
+    "minDuration": 0.45,
+    "keepPadding": 0.12
+  },
+  "zoom": {
+    "scale": 1.12,
+    "max": 4
+  },
+  "music": {
+    "volume": 0.12
+  }
+}
