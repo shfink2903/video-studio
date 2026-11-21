@@ -20,6 +20,14 @@ cd ~/video-studio && npm start
 
 Puis ouvre http://localhost:4620. Le serveur n'écoute que sur ton Mac.
 
+Ou double-clique sur `Studio.command` : il lance le studio et ouvre la page. Pour l'avoir sur ton bureau :
+
+```bash
+cp ~/video-studio/scripts/Studio.command ~/Desktop/
+```
+
+Garde sa fenêtre de Terminal ouverte pendant que tu utilises le studio ; ferme-la pour l'arrêter.
+
 ## Ce qui se passe quand tu déposes une vidéo
 
 1. **Transcription** : Whisper (modèle `models/ggml-small.bin`, langue détectée automatiquement), mot par mot.
