@@ -34,7 +34,7 @@ Puis ouvre http://localhost:4620. Le serveur n'écoute que sur ton Mac.
 
 ## Claude
 
-Les décisions de montage passent par le CLI Claude Code (`claude -p`). Il doit être connecté :
+Les décisions de montage passent par le CLI Claude Code (`claude -p`) avec le modèle Claude Fable 5.2 (`claude-fable-5-2`). Pour en changer : `CLAUDE_MODEL=opus npm start`. Le CLI doit être connecté :
 
 ```bash
 claude -p "ok"
